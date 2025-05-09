@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .content-header h1 { margin-bottom: 5px; font-size: 1.75rem; }
+    .content-header .text-muted { color: #6c757d !important; font-size: 0.9em; }
+    .btn-sm { padding: .25rem .5rem; font-size: .875rem; line-height: 1.5; border-radius: .2rem; }
+    .btn-outline-secondary { color: #6c757d; border-color: #6c757d; background-color: transparent; }
+    .btn-outline-secondary:hover { color: #fff; background-color: #6c757d; }
+
+    .report-table { width: 100%; margin-top: 20px; margin-bottom: 1rem; color: #212529; border-collapse: collapse; }
+    .report-table th, .report-table td { padding: 0.75rem; vertical-align: middle; border-top: 1px solid #dee2e6; text-align: left; }
+    .report-table thead th { vertical-align: bottom; border-bottom: 2px solid #dee2e6; background-color: #f8f9fa; }
+    .report-table tbody tr:nth-of-type(odd) { background-color: rgba(0,0,0,.03); }
+    .report-table tbody tr:hover { background-color: rgba(0,0,0,.05); }
+    .report-table td.number, .report-table th.number { text-align: center; } /* Center numbers */
+
+    .alert-info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; padding: .75rem 1.25rem; margin-bottom: 1rem; border-radius: .25rem; }
+    .arrears-indicator-report { /* Slightly different from attendance marking page if needed */
+        display: inline-block;
+        padding: .1em .3em;
+        font-size: 65%;
+        font-weight: 700;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle; 
+        border-radius: .25rem;
+        background-color: #dc3545; 
+        margin-left: 5px;
+        cursor: help;
+    }
+    .report-summary-info {
+        margin-bottom: 20px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: .25rem;
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <div>
+        <h1>{{ title }}</h1>
+        <p class="text-muted">
+            <strong>Subject:</strong> {{ subject_class.subject_taught.name if subject_class.subject_taught else 'N/A' }} |
+            <strong>Teacher:</strong> 
+            {% if subject_class.teacher_user %}
+                {{ subject_class.teacher_user.first_name }} {{ subject_class.teacher_user.last_name }}
+            {% else %}
+                Not Assigned
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('teacher.my_classes') }}" class="btn btn-outline-secondary btn-sm">Back to My Classes</a>
+</div>
+
+<div class="report-summary-info">
+    Total class sessions with attendance recorded: <strong>{{ unique_class_session_dates }}</strong>
+    {# Add more summary info here if needed, like date range of the report #}
+</div>
+
+{% if student_summary_data %}
+<table class="report-table">
+    <thead>
+        <tr>
+            <th>Student Name</th>
+            <th>Student ID #</th>
+            <th class="number" title="Total sessions where attendance was recorded for this student">Sessions Rec.</th>
+            <th class="number">Present</th>
+            <th class="number">Absent</th>
+            <th class="number">Late</th>
+            <th class="number">Excused</th>
+            <th class="number" title="Percentage of recorded sessions student was present or late">Attendance %</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for summary in student_summary_data %}
+        <tr>
+            <td>
+                {{ summary.student_obj.first_name }} {{ summary.student_obj.last_name }}
+                {% if summary.student_obj.is_in_arrears %}
+                    <span class="arrears-indicator-report" title="Account in Arrears">!</span>
+                {% endif %}
+            </td>
+            <td>{{ summary.student_obj.student_id_number }}</td>
+            <td class="number">{{ summary.total_sessions_recorded }}</td>
+            <td class="number">{{ summary.total_present }}</td>
+            <td class="number">{{ summary.total_absent }}</td>
+            <td class="number">{{ summary.total_late }}</td>
+            <td class="number">{{ summary.total_excused }}</td>
+            <td class="number">
+                {% if summary.total_sessions_recorded > 0 %}
+                    {{ "%.1f"|format(((summary.total_present + summary.total_late) / summary.total_sessions_recorded) * 100) }}%
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="alert alert-info" role="alert">
+    No students are currently enrolled in this class, or no attendance data is available.
+</div>
+{% endif %}
+
+{% endblock %}

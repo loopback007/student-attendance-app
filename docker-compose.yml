@@ -1,0 +1,62 @@
+# docker-compose.yml
+version: '3.8' # Specifies the Docker Compose file format version
+
+services:
+  # Flask Application Service (running with Gunicorn)
+  app:
+    build: . # Build the image from the Dockerfile in the current directory
+    container_name: student_attendance_app
+    restart: unless-stopped # Restart policy
+    # Define environment variables that will be available to the Flask app
+    # These can override those set in the Dockerfile or config.py if needed for compose context
+    # For production, sensitive data like SECRET_KEY and DATABASE_URL (if not SQLite)
+    # should be managed securely, e.g., via .env file loaded by compose or Docker secrets.
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=production # Ensures Flask runs in production mode
+      - FLASK_DEBUG=0
+      - DOCKER_CONTAINER=true
+      # - SECRET_KEY=your_very_strong_production_secret_key # IMPORTANT: Set this in a .env file or directly for production
+      # - DATABASE_URL=sqlite:////app/data/app.db # Example if DB is in a specific volume-mounted 'data' folder
+      # Our current config.py uses 'sqlite:///app.db' which will be /app/app.db in the container
+    volumes:
+      # Mount the application code into the container.
+      # This is useful for development to see code changes without rebuilding the image.
+      # For production, you might prefer to rely solely on the code copied into the image during build.
+      - .:/app 
+      # Named volume for the SQLite database file to persist data
+      # This ensures app.db is stored in a Docker managed volume.
+      # The source path inside the container is /app/app.db (where it's created by default)
+      - app_db_data:/app/data # We'll configure Flask to use /app/data/app.db
+    expose:
+      - "5000" # Expose port 5000 for Gunicorn (will be accessed by Nginx, not directly from host)
+    # depends_on: # If you had a separate database service like PostgreSQL
+    #   - db 
+
+  # Nginx Web Server / Reverse Proxy Service
+  nginx:
+    image: nginx:latest # Use the latest official Nginx image
+    container_name: student_attendance_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80" # Map port 80 on the host to port 80 in the Nginx container
+      # - "443:443" # Uncomment if you set up SSL/TLS
+    volumes:
+      # Mount a custom Nginx configuration file.
+      # We will create nginx.conf in the project root or a dedicated 'nginx' folder.
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro 
+      # If serving static files directly from Nginx (optional, Gunicorn can also do it via WhiteNoise)
+      # - ./app/static:/app/static # Mount static files if Nginx serves them
+      # If you have SSL certificates:
+      # - ./path/to/your/certs:/etc/nginx/certs:ro
+    depends_on:
+      - app # Nginx will only start after the 'app' service is ready (or at least started)
+
+# Define named volumes
+volumes:
+  app_db_data: # Persists the SQLite database
+
+# Networks (optional, Docker Compose creates a default network)
+# networks:
+#   app_network:
+#     driver: bridge

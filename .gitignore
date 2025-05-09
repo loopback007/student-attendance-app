@@ -1,0 +1,139 @@
+# .gitignore for Student Attendance Flask App
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib60/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+# Usually these files are written by a CI script
+# and the binaries are deployed to some other place.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff (if you ever mix, good to have)
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask specific
+instance/*
+# Ignore the instance folder by default.
+# If you need to track specific files in instance (e.g. a default config),
+# use negated patterns like:
+# !instance/some_specific_file.cfg
+# However, for SQLite DBs or secrets, they should generally be ignored.
+# Our app.db is now handled by Docker volumes in the containerized setup,
+# but if you run locally without Docker and it's in instance/, this will ignore it.
+# If app.db is in the root for local dev, add 'app.db' below.
+
+# SQLite
+# If you run locally and app.db is in the project root (not instance/ or a volume)
+app.db
+app.db-journal # SQLite journal file
+
+# Backup directory (if created within the project and not in instance/)
+# Our current backup logic puts them in instance/db_backups/, so instance/* covers it.
+# If you had a root-level db_backups/:
+# db_backups/
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Docker
+# Usually, Dockerfile and docker-compose.yml ARE versioned.
+# But if you have local overrides or temporary docker files:
+# Dockerfile.local
+# docker-compose.local.yml
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDEs and editors
+.idea/
+.vscode/
+*.project
+*.pydevproject
+*.sublime-workspace
+*.sublime-project
+*.tmproj
+*.komodoproject
+*~
+*.bak
+*.tmp
+*.swo
+*.swp
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Node
+node_modules/
+package-lock.json
+# Add if you are using npm/yarn for frontend assets, otherwise remove
+# dist/ # If frontend build output is in a 'dist' folder at root
+
+# Other
+.mypy_cache/
+.dmypy.json
+dmypy.json

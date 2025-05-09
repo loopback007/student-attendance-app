@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>{{ title }}</h1>
+    {# Optional: Add a button or link if teachers can initiate something from here #}
+</div>
+
+{% if classes %}
+<div class="list-group">
+    {% for class_item in classes %}
+    <div class="list-group-item list-group-item-action flex-column align-items-start mb-3 shadow-sm">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1 class-name">{{ class_item.name }}</h5>
+            <small class="text-muted">
+                {{ class_item.academic_year if class_item.academic_year else 'N/A Year' }}
+            </small>
+        </div>
+        <p class="mb-1">
+            <strong>Subject:</strong> {{ class_item.subject_taught.name if class_item.subject_taught else 'N/A' }}
+        </p>
+        <p class="mb-1">
+            <strong>Schedule:</strong> 
+            {% if class_item.schedule_details %}
+                <span class="class-schedule">{{ class_item.schedule_details }}</span>
+            {% else %}
+                <span class="text-muted">Not Scheduled</span>
+            {% endif %}
+        </p>
+        <div class="mt-2">
+            {# Link to mark attendance for today (default will be calculated by the route) #}
+            <a href="{{ url_for('teacher.mark_attendance', class_id=class_item.id) }}" class="btn btn-primary btn-sm">Mark/View Attendance</a>
+            <a href="{{ url_for('teacher.class_attendance_report', class_id=class_item.id) }}" class="btn btn-info btn-sm">View Report</a> {# ADDED THIS LINE #}
+            {# Optionally, add a link to view enrolled students for this class if needed #}
+            {# <a href="#" class="btn btn-outline-secondary btn-sm">View Students</a> #}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info" role="alert">
+    You are not currently assigned to any classes. If you believe this is an error, please contact an administrator.
+</div>
+{% endif %}
+
+<style>
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .list-group-item {
+        border-radius: 0.3rem;
+        border: 1px solid #e0e0e0;
+        padding: 1rem 1.25rem;
+    }
+    .list-group-item-action:hover, .list-group-item-action:focus {
+        z-index: 1;
+        color: #495057;
+        text-decoration: none;
+        background-color: #f8f9fa;
+    }
+    .class-name {
+        color: #007bff;
+    }
+    .class-schedule { /* Style for the schedule text */
+        font-weight: 500;
+        color: #28a745; /* Green color for schedule, or choose another */
+    }
+    .d-flex { display: flex !important; }
+    .w-100 { width: 100% !important; }
+    .justify-content-between { justify-content: space-between !important; }
+    .align-items-start { align-items: flex-start !important; }
+    .mb-1 { margin-bottom: 0.25rem !important; }
+    .mb-3 { margin-bottom: 1rem !important; }
+    .mt-2 { margin-top: 0.5rem !important; }
+    .shadow-sm { box-shadow: 0 .125rem .25rem rgba(0,0,0,.075) !important; }
+    .text-muted { color: #6c757d !important; }
+
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: .875rem; line-height: 1.5; border-radius: .2rem; }
+    .btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
+    .btn-primary:hover { background-color: #0056b3; }
+    .alert-info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
+    .btn-info { color: #fff; background-color: #17a2b8; border-color: #17a2b8; }
+</style>
+{% endblock %}

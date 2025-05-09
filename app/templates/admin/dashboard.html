@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Student Attendance{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .stat-card {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .stat-card h4 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        font-size: 1.1rem;
+        color: #555;
+    }
+    .stat-card .stat-number {
+        font-size: 2.2rem;
+        font-weight: 600;
+        color: #007bff;
+        margin-bottom: 5px;
+    }
+    .stat-card .stat-detail {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    /* Styles for admin sections (from previous version) */
+    .admin-sections { 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 20px; 
+        margin-top: 20px; 
+    }
+    .admin-sections .section { 
+        background-color: #e9ecef; 
+        padding: 15px; 
+        border-radius: 5px; 
+        flex: 1; 
+        min-width: 250px; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .admin-sections h4 { 
+        margin-top: 0; 
+        color: #343a40;
+        border-bottom: 1px solid #ced4da;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+    .admin-sections ul { 
+        list-style: none; 
+        padding-left: 0; 
+        margin-bottom: 0;
+    }
+    .admin-sections ul li { 
+        margin-bottom: 8px; 
+    }
+    .admin-sections ul li a { 
+        text-decoration: none; 
+        color: #007bff; 
+        transition: color 0.15s ease-in-out;
+    }
+    .admin-sections ul li a:hover { 
+        text-decoration: underline; 
+        color: #0056b3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h2>Admin Dashboard</h2>
+    <p>Welcome, {{ current_user.username }}! Overview of the school system:</p>
+
+    {# Display Statistics #}
+    {% if stats %}
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h4>Active Students</h4>
+            <div class="stat-number">{{ stats.total_active_students }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>Active Teachers</h4>
+            <div class="stat-number">{{ stats.total_teachers }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>Subjects Offered</h4>
+            <div class="stat-number">{{ stats.total_subjects }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>Total Classes</h4>
+            <div class="stat-number">{{ stats.total_classes }}</div>
+        </div>
+        <div class="stat-card">
+            <h4>Today's Attendance Rate</h4>
+            <div class="stat-number">{{ stats.todays_attendance_rate }}%</div>
+            <div class="stat-detail">
+                ({{ stats.todays_attendance_present_late_count }} out of {{ stats.todays_attendance_total_records_count }} records)
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-muted"><em>Statistics are currently unavailable.</em></p>
+    {% endif %}
+    
+    <p>This is the central control panel for administrators and superusers.</p>
+    
+    <div class="admin-sections">
+        <div class="section">
+            <h4>User Management</h4>
+            <ul>
+                <li><a href="{{ url_for('admin.list_all_users') }}">Manage All Users</a></li> 
+                <li><a href="{{ url_for('admin.add_user_admin') }}">Create New User</a></li> 
+            </ul>
+        </div>
+        <div class="section">
+            <h4>School Setup</h4>
+            <ul>
+                <li><a href="{{ url_for('admin.list_subjects') }}">Manage Subjects</a></li>
+                <li><a href="{{ url_for('admin.list_subject_classes') }}">Manage Classes / Sections</a></li> 
+                <li><a href="{{ url_for('admin.list_teachers') }}">Manage Teachers</a></li> 
+                <li><a href="{{ url_for('admin.list_students') }}">Manage Students</a></li> 
+            </ul>
+        </div>
+        <div class="section">
+            <h4>System & Data</h4>
+            <ul>
+                <li><a href="#">Import Data (Students/Classes)</a></li> 
+                <li><a href="#">Backup System</a></li> 
+                <li><a href="#">View System Logs</a></li> 
+                <li><a href="{{ url_for('admin.backup_management') }}">Database Backup</a></li>
+            </ul>
+        </div>
+    </div>
+{% endblock %}

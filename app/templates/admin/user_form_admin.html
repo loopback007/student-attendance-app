@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 25px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .form-container h2 {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #333;
+    }
+    .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        margin-right: -10px; 
+        margin-left: -10px;  
+    }
+    .form-row > .col-md-6 {
+        position: relative;
+        width: 100%;
+        padding-right: 10px; 
+        padding-left: 10px;  
+        flex: 0 0 50%;
+        max-width: 50%;
+        box-sizing: border-box;
+    }
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #555;
+    }
+    .form-control, .custom-select {
+        display: block;
+        width: 100%; 
+        box-sizing: border-box;
+        padding: 0.5rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+        height: calc(1.5em + 1rem + 2px); 
+    }
+    .custom-select { 
+        appearance: none; 
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007bff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right .75rem center;
+        background-size: .65em auto;
+        padding-right: 2.5rem; 
+    }
+    .form-control:focus, .custom-select:focus {
+        border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+    .form-control.is-invalid, .custom-select.is-invalid { border-color: #dc3545; }
+    .invalid-feedback {
+        display: none; width: 100%; margin-top: 0.25rem; font-size: 0.875em; color: #dc3545;
+    }
+    .form-control.is-invalid ~ .invalid-feedback,
+    .custom-select.is-invalid ~ .invalid-feedback,
+    .form-check-input.is-invalid ~ .invalid-feedback { display: block; }
+    .form-check { position: relative; display: block; padding-left: 1.25rem; }
+    .form-check-input { position: absolute; margin-top: 0.3rem; margin-left: -1.25rem; }
+    .form-check-label { margin-bottom: 0; font-weight: normal; }
+    .mt-4 { margin-top: 1.5rem !important; }
+    .form-buttons { margin-top: 30px; text-align: right; }
+    .form-buttons .btn { margin-left: 10px; }
+    .btn { padding: 0.5rem 1rem; border-radius: 0.25rem; text-decoration: none; cursor: pointer; font-size: 1rem; line-height: 1.5; }
+    .btn-lg { padding: .5rem 1rem; font-size: 1.1rem; line-height: 1.5; border-radius: .3rem; }
+    .btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
+    .btn-primary:hover { background-color: #0056b3; }
+    .btn-secondary { color: #fff; background-color: #6c757d; border-color: #6c757d; }
+    .btn-secondary:hover { background-color: #545b62; }
+    .text-muted { color: #6c757d !important; font-size: 0.9em; margin-bottom: 1rem; }
+    hr { margin-top: 1.5rem; margin-bottom: 1.5rem; border: 0; border-top: 1px solid rgba(0,0,0,.1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2>{{ legend }}</h2>
+    <form method="POST" action=""> {# Action URL is determined by the route #}
+        {{ form.hidden_tag() }} {# CSRF token #}
+        
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control " + ("is-invalid" if form.username.errors else "")) }}
+                {% if form.username.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group col-md-6">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control " + ("is-invalid" if form.email.errors else "")) }}
+                {% if form.email.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                {{ form.first_name.label(class="form-label") }}
+                {{ form.first_name(class="form-control " + ("is-invalid" if form.first_name.errors else "")) }}
+                {% if form.first_name.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.first_name.errors %}<span>{{ error }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group col-md-6">
+                {{ form.last_name.label(class="form-label") }}
+                {{ form.last_name(class="form-control " + ("is-invalid" if form.last_name.errors else "")) }}
+                {% if form.last_name.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.last_name.errors %}<span>{{ error }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            {{ form.role.label(class="form-label") }}
+            {{ form.role(class="form-control custom-select " + ("is-invalid" if form.role.errors else "")) }}
+            {% if form.role.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.role.errors %}<span>{{ error }}</span>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <hr>
+        <p class="text-muted">
+            {% if user_being_edited %}
+                Leave password fields blank to keep the current password.
+            {% else %}
+                Set an initial password for the new user. Password is required for new users.
+            {% endif %}
+        </p>
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control " + ("is-invalid" if form.password.errors else "")) }}
+                {% if form.password.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-group col-md-6">
+                {{ form.confirm_password.label(class="form-label") }}
+                {{ form.confirm_password(class="form-control " + ("is-invalid" if form.confirm_password.errors else "")) }}
+                {% if form.confirm_password.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.confirm_password.errors %}<span>{{ error }}</span>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="form-check mt-2"> {# Removed mt-4, using a smaller margin #}
+                {{ form.is_active(class="form-check-input") }}
+                {{ form.is_active.label(class="form-check-label") }}
+            </div>
+        </div>
+
+        <div class="form-group form-buttons">
+            {{ form.submit(class="btn btn-primary btn-lg") }}
+            <a href="{{ url_for('admin.list_all_users') }}" class="btn btn-secondary btn-lg">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

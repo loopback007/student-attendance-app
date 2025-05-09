@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Student Attendance{% endblock %}
+
+{% block content %}
+    <h2>Main Dashboard</h2>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <p>Your role is: <strong>{{ current_user.role.name.title() if current_user.role else 'Not Assigned' }}</strong>.</p>
+    
+    <p>This is the main dashboard. Content specific to your role will appear here or in dedicated sections.</p>
+
+    {% if current_user.is_superuser or current_user.is_admin %}
+        <div class="dashboard-section">
+            <h3>Quick Admin Actions</h3>
+            <ul>
+                <li><a href="{{ url_for('admin.admin_dashboard') }}">Go to Admin Panel</a></li>
+                </ul>
+        </div>
+    {% elif current_user.is_teacher %}
+        <div class="dashboard-section">
+            <h3>Teacher Actions</h3>
+            <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}">View Your Classes</a></li>
+                </ul>
+        </div>
+    {% elif current_user.is_staff %}
+        <div class="dashboard-section">
+            <h3>Staff Actions</h3>
+            <ul>
+                <li><a href="#">Manage Students</a></li>
+                <li><a href="#">Manage Classes</a></li>
+                </ul>
+        </div>
+    {% endif %}
+
+    <p>More features coming soon!</p>
+{% endblock %}

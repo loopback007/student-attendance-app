@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .backup-actions {
+        margin-bottom: 25px;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+    }
+    .backup-actions h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+    .backup-list {
+        margin-top: 20px;
+    }
+    .backup-list h4 {
+        margin-bottom: 10px;
+    }
+    .table { width: 100%; margin-bottom: 1rem; color: #212529; border-collapse: collapse; }
+    .table th, .table td { padding: 0.75rem; vertical-align: top; border-top: 1px solid #dee2e6; }
+    .table thead th { vertical-align: bottom; border-bottom: 2px solid #dee2e6; text-align: left; }
+    .table-striped tbody tr:nth-of-type(odd) { background-color: rgba(0,0,0,.05); }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        border-radius: 0.25rem;
+        text-decoration: none;
+        cursor: pointer;
+        line-height: 1.5;
+        text-align: center;
+        vertical-align: middle;
+        user-select: none;
+        border: 1px solid transparent;
+    }
+    .btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
+    .btn-primary:hover { background-color: #0056b3; }
+    .btn-success { color: #fff; background-color: #28a745; border-color: #28a745; }
+    .btn-success:hover { background-color: #1e7e34; }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5; border-radius: 0.2rem; }
+    .btn-outline-secondary { color: #6c757d; border-color: #6c757d; background-color: transparent; }
+    .btn-outline-secondary:hover { color: #fff; background-color: #6c757d; }
+    .alert-info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; padding: .75rem 1.25rem; margin-bottom: 1rem; border-radius: .25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h1>{{ title }}</h1>
+    <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">Back to Admin Dashboard</a>
+</div>
+
+<div class="backup-actions">
+    <h3>Create New Database Backup</h3>
+    <p>Click the button below to create an immediate backup of the application database (SQLite only for now). Backups are stored in the instance folder.</p>
+    <form action="{{ url_for('admin.create_backup') }}" method="POST" onsubmit="return confirm('Are you sure you want to create a new database backup?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success btn-lg">Create Backup Now</button>
+    </form>
+</div>
+
+<div class="backup-list">
+    <h4>Existing Backups</h4>
+    {% if backup_files %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Filename</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for filename in backup_files %}
+            <tr>
+                <td>{{ filename }}</td>
+                <td>
+                    <a href="{{ url_for('admin.download_backup', filename=filename) }}" class="btn btn-sm btn-primary">Download</a>
+                    {# Add delete functionality later if needed, with caution #}
+                    {# <form action="#" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this backup? This action cannot be undone.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form> #}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-info">
+        No backup files found.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

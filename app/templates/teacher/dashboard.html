@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard - Student Attendance{% endblock %}
+
+{% block content %}
+    <h2>Teacher Dashboard</h2>
+    <p>Hello, {{ current_user.username }}!</p>
+    <p>Here you can manage your classes and student attendance.</p>
+
+    <div class="teacher-actions">
+        <h3>Your Classes</h3>
+        <p><em>No classes assigned yet, or class listing feature not implemented.</em></p>
+        <ul>
+            <li><a href="#">Class 10A - Mathematics (View Attendance)</a></li>
+            <li><a href="#">Class 9B - Science (View Attendance)</a></li>
+        </ul>
+
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="#">Take Attendance for Today</a></li>
+            <li><a href="#">View Attendance Reports</a></li>
+            <li><a href="#">Manage Your Profile</a></li>
+        </ul>
+    </div>
+    <style>
+        .teacher-actions h3 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px;}
+        .teacher-actions ul { list-style: none; padding-left: 0; }
+        .teacher-actions ul li { margin-bottom: 8px; }
+    </style>
+{% endblock %}

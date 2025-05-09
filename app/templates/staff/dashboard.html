@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Staff Dashboard - Student Attendance{% endblock %}
+
+{% block content %}
+    <h2>Staff Dashboard</h2>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <p>This area is for staff members to manage student and class information.</p>
+
+    <div class="staff-actions">
+        <h3>Student Management</h3>
+        <ul>
+            <li><a href="#">View All Students</a></li>
+            <li><a href="#">Add New Student</a></li>
+            <li><a href="#">Edit Student Details</a></li>
+            <li><a href="#">Manage Student Enrollments</a></li>
+        </ul>
+
+        <h3>Class Management</h3>
+        <ul>
+            <li><a href="#">View All Classes</a></li>
+            <li><a href="#">Edit Class Schedules</a></li>
+            <li><a href="#">Assign Teachers to Classes</a></li>
+        </ul>
+    </div>
+    <style>
+        .staff-actions h3 { border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px;}
+        .staff-actions ul { list-style: none; padding-left: 0; }
+        .staff-actions ul li { margin-bottom: 8px; }
+    </style>
+{% endblock %}
