@@ -1,208 +1,138 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {# Assumes base_html_bootstrap is your base.html #}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} - The Temple of Fine Arts Johor Bahru Attendance Tracker{% endblock %}
 
-{% block content %}
-<div class="form-container">
-    <h2>{{ legend }}</h2>
-    <form method="POST" action=""> {# Action URL is determined by the route #}
-        {{ form.hidden_tag() }} {# CSRF token #}
-        
-        <div class="form-group">
-            {{ form.name.label(class="form-label") }}
-            {{ form.name(class="form-control " + ("is-invalid" if form.name.errors else ""), placeholder=form.name.description) }}
-            {% if form.name.errors %}
-                <div class="invalid-feedback">
-                    {% for error in form.name.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="form-row">
-            <div class="form-group col-md-6">
-                {{ form.subject.label(class="form-label") }}
-                {{ form.subject(class="form-control custom-select " + ("is-invalid" if form.subject.errors else "")) }}
-                {% if form.subject.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.subject.errors %}<span>{{ error }}</span>{% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            <div class="form-group col-md-6">
-                {{ form.teacher.label(class="form-label") }}
-                {{ form.teacher(class="form-control custom-select " + ("is-invalid" if form.teacher.errors else ""), placeholder=form.teacher.description) }}
-                {% if form.teacher.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.teacher.errors %}<span>{{ error }}</span>{% endfor %}
-                    </div>
-                {% endif %}
-                 <small class="form-text text-muted">{{ form.teacher.description }}</small>
-            </div>
-        </div>
-        
-        <div class="form-group">
-            {{ form.schedule_details.label(class="form-label") }}
-            {{ form.schedule_details(class="form-control " + ("is-invalid" if form.schedule_details.errors else ""), placeholder=form.schedule_details.description) }}
-            {% if form.schedule_details.errors %}
-                <div class="invalid-feedback">
-                    {% for error in form.schedule_details.errors %}<span>{{ error }}</span>{% endfor %}
-                </div>
-            {% endif %}
-            <small class="form-text text-muted">{{ form.schedule_details.description }}</small>
-        </div>
-
-        <div class="form-row">
-            <div class="form-group col-md-4">
-                {{ form.start_date.label(class="form-label") }}
-                {{ form.start_date(class="form-control " + ("is-invalid" if form.start_date.errors else ""), placeholder="YYYY-MM-DD") }}
-                {% if form.start_date.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.start_date.errors %}<span>{{ error }}</span>{% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            <div class="form-group col-md-4">
-                {{ form.end_date.label(class="form-label") }}
-                {{ form.end_date(class="form-control " + ("is-invalid" if form.end_date.errors else ""), placeholder="YYYY-MM-DD") }}
-                {% if form.end_date.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.end_date.errors %}<span>{{ error }}</span>{% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-            <div class="form-group col-md-4">
-                {{ form.academic_year.label(class="form-label") }}
-                {{ form.academic_year(class="form-control " + ("is-invalid" if form.academic_year.errors else ""), placeholder=form.academic_year.description) }}
-                {% if form.academic_year.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.academic_year.errors %}<span>{{ error }}</span>{% endfor %}
-                    </div>
-                {% endif %}
-                <small class="form-text text-muted">{{ form.academic_year.description }}</small>
-            </div>
-        </div>
-
-        <div class="form-group form-buttons">
-            {{ form.submit(class="btn btn-primary btn-lg") }}
-            <a href="{{ url_for('admin.list_subject_classes') }}" class="btn btn-secondary btn-lg">Cancel</a>
-        </div>
-    </form>
-</div>
-
+{% block head_extensions %}
 <style>
+    /* Page-specific styles can go here if needed */
     .form-container {
-        max-width: 850px; /* Adjusted width */
-        margin: 20px auto;
-        padding: 25px;
-        background-color: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        max-width: 850px; /* Max width for the form card */
+        margin-top: 2rem; /* Some space from the navbar */
+        margin-bottom: 3rem; /* Space from footer */
     }
-    .form-container h2 {
-        text-align: center;
-        margin-bottom: 25px;
-        color: #333;
+    .form-card-header {
+        background-color: var(--bs-primary-bg-subtle); 
+        border-bottom: 1px solid var(--bs-primary-border-subtle);
+        color: var(--bs-primary); 
+        padding: 1rem 1.25rem;
     }
-    .form-row {
-        display: flex;
-        flex-wrap: wrap;
-        margin-right: -10px; /* Gutter */
-        margin-left: -10px;  /* Gutter */
+    .form-card-header h2 {
+        font-size: 1.5rem; 
     }
-    .form-row > .col-md-6, .form-row > .col-md-4 {
-        position: relative;
-        width: 100%;
-        padding-right: 10px; /* Gutter */
-        padding-left: 10px;  /* Gutter */
-        box-sizing: border-box;
-    }
-    .col-md-6 { flex: 0 0 50%; max-width: 50%; }
-    .col-md-4 { flex: 0 0 33.333333%; max-width: 33.333333%; }
-
-    .form-group {
-        margin-bottom: 1.25rem;
-    }
-    .form-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #555;
-    }
-    .form-control, .custom-select { /* Apply to select too */
-        display: block;
-        width: 100%; 
-        box-sizing: border-box;
-        padding: 0.5rem 0.75rem;
-        font-size: 1rem;
-        font-weight: 400;
-        line-height: 1.5;
-        color: #495057;
-        background-color: #fff;
-        background-clip: padding-box;
-        border: 1px solid #ced4da;
-        border-radius: 0.25rem;
-        transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-        height: calc(1.5em + 1rem + 2px); /* Standard height for inputs and selects */
-    }
-    .custom-select { /* Specific styling for select if needed, often handled by Bootstrap/frameworks */
-        appearance: none; /* Basic reset for custom styling */
-        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007bff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
-        background-repeat: no-repeat;
-        background-position: right .75rem center;
-        background-size: .65em auto;
-        padding-right: 2.5rem; /* Make space for arrow */
-    }
-    .form-control:focus, .custom-select:focus {
-        color: #495057;
-        background-color: #fff;
-        border-color: #80bdff;
-        outline: 0;
-        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
-    }
-    .form-control.is-invalid, .custom-select.is-invalid {
-        border-color: #dc3545;
-    }
-    .invalid-feedback {
-        display: none;
-        width: 100%;
-        margin-top: 0.25rem;
-        font-size: 0.875em;
-        color: #dc3545;
-    }
-    .form-control.is-invalid ~ .invalid-feedback,
-    .custom-select.is-invalid ~ .invalid-feedback {
-        display: block;
+    .form-buttons .btn {
+        min-width: 100px; /* Ensure buttons have a decent minimum width */
     }
     .form-text.text-muted { /* For field descriptions */
         font-size: 0.875em;
-        color: #6c757d;
+        display: block; /* Ensure it takes its own line */
         margin-top: .25rem;
     }
-    .form-buttons {
-        margin-top: 30px;
-        text-align: right;
-    }
-    .form-buttons .btn {
-        margin-left: 10px;
-    }
-    .btn {
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        text-decoration: none;
-        cursor: pointer;
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-    .btn-lg {
-        padding: .5rem 1rem;
-        font-size: 1.1rem;
-        line-height: 1.5;
-        border-radius: .3rem;
-    }
-    .btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
-    .btn-primary:hover { background-color: #0056b3; }
-    .btn-secondary { color: #fff; background-color: #6c757d; border-color: #6c757d; }
-    .btn-secondary:hover { background-color: #545b62; }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="container form-container">
+    <div class="card shadow-sm">
+        <div class="card-header form-card-header">
+            <h2 class="text-center mb-0">{{ legend }}</h2>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST" action=""> {# Action URL is determined by the route for add or edit #}
+                {{ form.hidden_tag() }} {# CSRF token #}
+                
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {% if form.name.errors %}
+                        {{ form.name(class="form-control form-control-lg is-invalid", placeholder=form.name.description) }}
+                        <div class="invalid-feedback">
+                            {% for error in form.name.errors %}<span>{{ error }}</span>{% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.name(class="form-control form-control-lg", placeholder=form.name.description) }}
+                    {% endif %}
+                    {% if form.name.description %}<small class="form-text text-muted">{{ form.name.description }}</small>{% endif %}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ form.subject.label(class="form-label") }}
+                        {# QuerySelectField renders as a select element #}
+                        {{ form.subject(class="form-select " + ("is-invalid" if form.subject.errors else "")) }}
+                        {% if form.subject.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.subject.errors %}<span>{{ error }}</span>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        {{ form.teacher.label(class="form-label") }}
+                        {# QuerySelectField renders as a select element #}
+                        {{ form.teacher(class="form-select " + ("is-invalid" if form.teacher.errors else "")) }}
+                        {% if form.teacher.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.teacher.errors %}<span>{{ error }}</span>{% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.teacher.description %}<small class="form-text text-muted">{{ form.teacher.description }}</small>{% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    {{ form.schedule_details.label(class="form-label") }}
+                    {% if form.schedule_details.errors %}
+                        {{ form.schedule_details(class="form-control is-invalid", placeholder=form.schedule_details.description) }}
+                        <div class="invalid-feedback">
+                            {% for error in form.schedule_details.errors %}<span>{{ error }}</span>{% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.schedule_details(class="form-control", placeholder=form.schedule_details.description) }}
+                    {% endif %}
+                    {% if form.schedule_details.description %}<small class="form-text text-muted">{{ form.schedule_details.description }}</small>{% endif %}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        {{ form.start_date.label(class="form-label") }}
+                        {% if form.start_date.errors %}
+                            {{ form.start_date(class="form-control is-invalid", placeholder="YYYY-MM-DD") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.start_date.errors %}<span>{{ error }}</span>{% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.start_date(class="form-control", placeholder="YYYY-MM-DD") }}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        {{ form.end_date.label(class="form-label") }}
+                        {% if form.end_date.errors %}
+                            {{ form.end_date(class="form-control is-invalid", placeholder="YYYY-MM-DD") }}
+                            <div class="invalid-feedback">
+                                {% for error in form.end_date.errors %}<span>{{ error }}</span>{% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.end_date(class="form-control", placeholder="YYYY-MM-DD") }}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        {{ form.academic_year.label(class="form-label") }}
+                        {% if form.academic_year.errors %}
+                            {{ form.academic_year(class="form-control is-invalid", placeholder=form.academic_year.description) }}
+                            <div class="invalid-feedback">
+                                {% for error in form.academic_year.errors %}<span>{{ error }}</span>{% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.academic_year(class="form-control", placeholder=form.academic_year.description) }}
+                        {% endif %}
+                        {% if form.academic_year.description %}<small class="form-text text-muted">{{ form.academic_year.description }}</small>{% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group form-buttons d-flex justify-content-end mt-4">
+                    <a href="{{ url_for('admin.list_subject_classes') }}" class="btn btn-secondary me-2">Cancel</a>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}

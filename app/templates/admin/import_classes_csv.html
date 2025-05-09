@@ -1,142 +1,129 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {# Assumes base_html_bootstrap is your base.html #}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} - The Temple of Fine Arts Johor Bahru Attendance Tracker{% endblock %}
 
 {% block head_extensions %}
 <style>
+    /* Page-specific styles can go here if needed */
     .form-container {
-        max-width: 750px; /* Slightly wider for more instructions */
-        margin: 20px auto;
-        padding: 25px;
-        background-color: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        max-width: 750px; /* Max width for the form card */
+        margin-top: 2rem; /* Some space from the navbar */
+        margin-bottom: 3rem; /* Space from footer */
     }
-    .form-container h2 {
-        text-align: center;
-        margin-bottom: 25px;
-        color: #333;
+    .form-card-header {
+        background-color: var(--bs-primary-bg-subtle); 
+        border-bottom: 1px solid var(--bs-primary-border-subtle);
+        color: var(--bs-primary); 
+        padding: 1rem 1.25rem;
     }
-    .form-group {
-        margin-bottom: 1.5rem;
+    .form-card-header h2 {
+        font-size: 1.5rem; 
     }
-    .form-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #555;
-    }
-    .form-control-file { /* For FileField */
-        display: block;
-        width: 100%;
-    }
-    .form-control-file.is-invalid {
-        border: 1px solid #dc3545 !important; 
-    }
-    .invalid-feedback {
-        display: none; 
-        width: 100%;
-        margin-top: 0.25rem;
-        font-size: 0.875em;
-        color: #dc3545;
-    }
-    .form-control-file.is-invalid ~ .invalid-feedback,
-    input[type="file"].is-invalid ~ .invalid-feedback {
-        display: block;
-    }
-     .form-buttons {
-        margin-top: 30px;
-        text-align: right;
-    }
-    .btn {
-        padding: 0.5rem 1rem;
-        border-radius: 0.25rem;
-        text-decoration: none;
-        cursor: pointer;
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-    .btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
-    .btn-primary:hover { background-color: #0056b3; }
-    .btn-secondary { color: #fff; background-color: #6c757d; border-color: #6c757d; }
-    .btn-secondary:hover { background-color: #545b62; }
-    .btn-lg {
-        padding: .5rem 1rem;
-        font-size: 1.1rem;
-        line-height: 1.5;
-        border-radius: .3rem;
+    .form-buttons .btn {
+        min-width: 100px; /* Ensure buttons have a decent minimum width */
     }
     .instructions {
-        background-color: #e9ecef;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
+        background-color: #e9ecef; /* Light grey background for instructions */
+        padding: 1rem;
+        border-radius: .375rem; /* Bootstrap's default card/alert border-radius */
+        margin-bottom: 1.5rem;
         font-size: 0.9em;
+        border: 1px solid #ced4da; /* A light border */
+    }
+    .instructions h4 {
+        color: var(--bs-primary); /* Use theme color for instruction heading */
+        margin-bottom: 0.75rem;
     }
     .instructions ul {
-        padding-left: 20px;
-        margin-bottom: 10px;
+        padding-left: 1.25rem; /* Indent list items */
+        margin-bottom: 0.5rem;
     }
     .instructions ul li ul {
-        margin-top: 5px;
+        margin-top: 0.25rem;
+        margin-bottom: 0.5rem;
     }
     .instructions code {
-        background-color: #d1d1d1;
-        padding: 2px 4px;
-        border-radius: 3px;
-        font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+        background-color: #d1e7dd; /* A subtle green for code examples, or choose another */
+        color: #0a3622;
+        padding: .2em .4em;
+        border-radius: .25rem;
+        font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .form-control-file { /* Bootstrap class for file inputs */
+        display: block;
+        width: 100%;
+    }
+    .form-control-file.is-invalid { /* Custom styling for invalid file input if needed */
+        border-color: var(--bs-danger);
+    }
+    .invalid-feedback { /* Ensure this is styled as per Bootstrap */
+         display: none; 
+         width: 100%;
+         margin-top: .25rem;
+         font-size: .875em;
+         color: var(--bs-danger);
+    }
+    .form-control-file.is-invalid ~ .invalid-feedback, /* Show feedback for file input */
+    input[type="file"].is-invalid ~ .invalid-feedback { /* Also target generic file input if form.csv_file renders as that */
+        display: block;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
-    <h2>{{ title }}</h2>
+<div class="container form-container">
+    <div class="card shadow-sm">
+        <div class="card-header form-card-header">
+            <h2 class="text-center mb-0">{{ title }}</h2>
+        </div>
+        <div class="card-body p-4">
 
-    <div class="instructions">
-        <h4>CSV File Format Instructions for Subject Classes:</h4>
-        <p>Please ensure your CSV file has a header row. Column names are case-insensitive.</p>
-        <ul>
-            <li><strong>Required Headers:</strong>
+            <div class="instructions">
+                <h4>CSV File Format Instructions for Subject Classes:</h4>
+                <p>Please ensure your CSV file has a header row. Column names are case-insensitive and whitespace around them will be trimmed.</p>
                 <ul>
-                    <li><code>class_name</code>: The unique name or identifier for the class (e.g., "Mathematics 10A").</li>
-                    <li><code>subject_identifier</code>: The name or ID of an existing subject (e.g., "Mathematics" or <code>123</code>).</li>
+                    <li><strong>Required Headers:</strong>
+                        <ul>
+                            <li><code>class_name</code>: The unique name or identifier for the class (e.g., "Mathematics 10A").</li>
+                            <li><code>subject_identifier</code>: The name or ID of an existing subject (e.g., "Mathematics" or <code>123</code>).</li>
+                        </ul>
+                    </li>
+                    <li><strong>Optional Headers:</strong>
+                        <ul>
+                            <li><code>teacher_identifier</code>: The username, email, or ID of an existing teacher. If provided but not found, class is created without a teacher.</li>
+                            <li><code>schedule_details</code>: Text describing the schedule (e.g., "Mon 09:00-10:00, Room 101").</li>
+                            <li><code>academic_year</code>: (e.g., "2024-2025").</li>
+                            <li><code>start_date</code>: Format <code>YYYY-MM-DD</code> or <code>DD/MM/YYYY</code>.</li>
+                            <li><code>end_date</code>: Format <code>YYYY-MM-DD</code> or <code>DD/MM/YYYY</code>. (Must not be before start_date).</li>
+                        </ul>
+                    </li>
                 </ul>
-            </li>
-            <li><strong>Optional Headers:</strong>
-                <ul>
-                    <li><code>teacher_identifier</code>: The username, email, or ID of an existing teacher. If provided but not found, class is created without a teacher.</li>
-                    <li><code>schedule_details</code>: Text describing the schedule (e.g., "Mon 09:00-10:00, Room 101").</li>
-                    <li><code>academic_year</code>: (e.g., "2024-2025").</li>
-                    <li><code>start_date</code>: Format <code>YYYY-MM-DD</code> or <code>DD/MM/YYYY</code>.</li>
-                    <li><code>end_date</code>: Format <code>YYYY-MM-DD</code> or <code>DD/MM/YYYY</code>. (Must not be before start_date).</li>
-                </ul>
-            </li>
-        </ul>
-        <p>Rows with a <code>class_name</code> that already exists will be skipped.</p>
-        <p>If a <code>subject_identifier</code> is not found, the row will be skipped.</p>
-    </div>
+                <p>Rows with a <code>class_name</code> that already exists will be skipped.</p>
+                <p>If a <code>subject_identifier</code> is not found, the row will be skipped.</p>
+            </div>
 
-    <form method="POST" action="{{ url_for('admin.import_classes_csv') }}" enctype="multipart/form-data">
-        {{ form.hidden_tag() }} {# CSRF token #}
-        
-        <div class="form-group">
-            {{ form.csv_file.label(class="form-label") }}
-            {{ form.csv_file(class="form-control-file " + ("is-invalid" if form.csv_file.errors else "")) }}
-            {% if form.csv_file.errors %}
-                <div class="invalid-feedback">
-                    {% for error in form.csv_file.errors %}
-                        <span>{{ error }}</span><br>
-                    {% endfor %}
+            <form method="POST" action="{{ url_for('admin.import_classes_csv') }}" enctype="multipart/form-data">
+                {{ form.hidden_tag() }} {# CSRF token #}
+                
+                <div class="mb-3">
+                    {{ form.csv_file.label(class="form-label") }}
+                    {# Use Bootstrap's form-control for file inputs for consistent styling #}
+                    {{ form.csv_file(class="form-control " + ("is-invalid" if form.csv_file.errors else "")) }}
+                    {% if form.csv_file.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.csv_file.errors %}
+                                <span>{{ error }}</span><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
-            {% endif %}
-        </div>
 
-        <div class="form-group form-buttons">
-            {{ form.submit(class="btn btn-primary btn-lg") }}
-            <a href="{{ url_for('admin.list_subject_classes') }}" class="btn btn-secondary btn-lg">Cancel</a>
+                <div class="form-group form-buttons d-flex justify-content-end mt-4">
+                    <a href="{{ url_for('admin.list_subject_classes') }}" class="btn btn-secondary me-2">Cancel</a>
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
         </div>
-    </form>
+    </div>
 </div>
 {% endblock %}

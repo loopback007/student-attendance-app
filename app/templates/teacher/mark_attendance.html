@@ -1,9 +1,10 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {# Assumes base_html_bootstrap is your base.html #}
 
-{% block title %}{{ title }} - {{ subject_class.name }}{% endblock %}
+{% block title %}{{ title }} - {{ subject_class.name }} - The Temple of Fine Arts Johor Bahru Attendance Tracker{% endblock %}
 
 {% block head_extensions %}
 <style>
+    /* Page-specific styles can go here if needed */
     .content-header {
         display: flex;
         justify-content: space-between;
@@ -12,60 +13,81 @@
         padding-bottom: 15px;
         border-bottom: 1px solid #e9ecef;
     }
-    .content-header h1 { margin-bottom: 5px; font-size: 1.75rem; }
-    .content-header .text-muted { color: #6c757d !important; font-size: 0.9em; }
-    .date-selector-form { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .date-selector-form label { margin-bottom: 0; font-weight: normal; }
-    .form-control-sm { height: calc(1.5em + .5rem + 2px); padding: .25rem .5rem; font-size: .875rem; line-height: 1.5; border-radius: .2rem; }
-    .btn-sm { padding: .25rem .5rem; font-size: .875rem; line-height: 1.5; border-radius: .2rem; }
+    .content-header h1 { 
+        margin-bottom: 5px; 
+        font-size: 1.6rem; /* Slightly smaller for this page */
+    }
+    .content-header .text-muted { 
+        color: #6c757d !important; 
+        font-size: 0.9em; 
+        line-height: 1.4;
+    }
+    .date-selector-form { 
+        margin-bottom: 1.5rem; /* mb-3 */
+        display: flex; 
+        align-items: center; 
+        gap: 0.5rem; /* gap-2 */
+        flex-wrap: wrap; 
+    }
+    .date-selector-form label { 
+        margin-bottom: 0; 
+        font-weight: normal; /* Bootstrap default for form-label is bold */
+    }
     
     .attendance-table { width: 100%; margin-bottom: 1rem; color: #212529; border-collapse: collapse; }
-    .attendance-table th, .attendance-table td { padding: 0.65rem; vertical-align: middle; border-top: 1px solid #dee2e6; }
+    .attendance-table th, .attendance-table td { padding: 0.6rem; vertical-align: middle; border-top: 1px solid #dee2e6; }
     .attendance-table thead th { vertical-align: bottom; border-bottom: 2px solid #dee2e6; text-align: left; background-color: #f8f9fa; }
     .attendance-table tbody tr:nth-of-type(odd) { background-color: rgba(0,0,0,.03); }
     .attendance-table tbody tr:hover { background-color: rgba(0,0,0,.05); }
 
-    .student-name-col { width: 30%; }
+    .student-name-col { width: 35%; } /* Adjusted widths */
     .status-col { width: 25%; }
-    .remarks-col { width: 45%; }
+    .remarks-col { width: 40%; }
 
-    .form-control, .custom-select {
-        display: block; width: 100%; box-sizing: border-box; padding: 0.375rem 0.75rem;
-        font-size: 0.9rem; line-height: 1.5; color: #495057; background-color: #fff;
-        background-clip: padding-box; border: 1px solid #ced4da; border-radius: 0.25rem;
+    .form-control, .form-select { /* Bootstrap classes, ensure they are styled as expected */
+        display: block; 
+        width: 100%; 
+        box-sizing: border-box; 
+        padding: .375rem .75rem;
+        font-size: .9rem; /* Slightly smaller for table inputs */
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--bs-body-color);
+        background-color: var(--bs-body-bg);
+        background-clip: padding-box;
+        border: 1px solid var(--bs-border-color);
+        appearance: none;
+        border-radius: .375rem; /* Bootstrap's default border-radius */
         transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
     }
-    .form-control:focus, .custom-select:focus {
-        border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    .form-select { /* Arrow for select */
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right .75rem center;
+        background-size: 16px 12px;
+        padding-right: 2.25rem;
     }
-    .form-control.is-invalid, .custom-select.is-invalid { border-color: #dc3545; }
-    .invalid-feedback { display: none; width: 100%; margin-top: 0.25rem; font-size: 0.875em; color: #dc3545; }
-    .form-control.is-invalid ~ .invalid-feedback, .custom-select.is-invalid ~ .invalid-feedback { display: block; }
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe; /* Bootstrap focus color */
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .form-control.is-invalid, .form-select.is-invalid { border-color: var(--bs-danger); }
+    .invalid-feedback { display: none; width: 100%; margin-top: 0.25rem; font-size: 0.875em; color: var(--bs-danger); }
+    .form-control.is-invalid ~ .invalid-feedback, 
+    .form-select.is-invalid ~ .invalid-feedback { display: block; }
 
-    .submit-button-container { margin-top: 20px; text-align: right; }
-    .btn-primary { color: #fff; background-color: #007bff; border-color: #007bff; }
-    .btn-primary:hover { background-color: #0056b3; }
-    .btn-secondary { color: #fff; background-color: #6c757d; border-color: #6c757d; }
-    .btn-secondary:hover { background-color: #545b62; }
-    .btn-outline-secondary { color: #6c757d; border-color: #6c757d; background-color: transparent; }
-    .btn-outline-secondary:hover { color: #fff; background-color: #6c757d; }
+    .submit-button-container { margin-top: 1.5rem; text-align: right; } /* mb-3 */
+    .btn-sm { padding: .25rem .5rem; font-size: .875rem; line-height: 1.5; border-radius: .2rem; }
+    .btn-lg { padding: .5rem 1rem; font-size: 1.1rem; line-height: 1.5; border-radius: .3rem; }
     .alert-info { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; padding: .75rem 1.25rem; margin-bottom: 1rem; border-radius: .25rem; }
     .scheduled-day-info { font-size: 0.85em; color: #555; margin-left: 15px; }
     
-    .arrears-indicator { /* Style for the arrears flag */
-        display: inline-block;
-        padding: .2em .4em;
-        font-size: 70%;
-        font-weight: 700;
-        line-height: 1;
-        color: #fff;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: super; /* Aligns a bit higher */
-        border-radius: .25rem;
-        background-color: #dc3545; /* Red for arrears */
-        margin-left: 5px;
-        cursor: help; /* Indicate more info on hover, if you add a title attribute */
+    .arrears-indicator { 
+        display: inline-block; padding: .2em .4em; font-size: 70%; font-weight: 700;
+        line-height: 1; color: #fff; text-align: center; white-space: nowrap;
+        vertical-align: super; border-radius: .25rem; background-color: #dc3545; 
+        margin-left: 5px; cursor: help;
     }
 </style>
 {% endblock %}
@@ -75,7 +97,7 @@
     <div>
         <h1>{{ title }}</h1>
         <p class="text-muted">
-            <strong>Subject:</strong> {{ subject_class.subject_taught.name if subject_class.subject_taught else 'N/A' }} |
+            <strong>Subject:</strong> {{ subject_class.subject_taught.name if subject_class.subject_taught else 'N/A' }} <br>
             <strong>Date:</strong> {{ selected_date_for_display.strftime('%A, %B %d, %Y') }}
             {% if subject_class.schedule_details %}
                 <span class="scheduled-day-info">(Class normally on: {{ subject_class.schedule_details[:3] }})</span>
@@ -87,68 +109,73 @@
 
 {# Form to select a different date #}
 <form method="GET" action="{{ url_for('teacher.mark_attendance', class_id=subject_class.id) }}" class="date-selector-form">
-    <label for="attendance_date_picker">Change Date:</label>
+    <label for="attendance_date_picker" class="form-label me-2">Change Date:</label> {# Added form-label and margin #}
     <input type="date" id="attendance_date_picker" name="attendance_date" 
            value="{{ selected_date_for_display.strftime('%Y-%m-%d') }}" class="form-control form-control-sm" style="width: auto;">
     <button type="submit" class="btn btn-secondary btn-sm">View Date</button>
     {% if scheduled_weekday_num is not none %}
-        <small class="text-muted">Note: Attendance is typically recorded for {{ ["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays"][scheduled_weekday_num] }}.</small>
+        <small class="text-muted ms-2">Note: Typically on {{ ["Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays", "Sundays"][scheduled_weekday_num] }}.</small>
     {% endif %}
 </form>
 
 {% if enrolled_students_for_template %}
-<form method="POST" action="{{ url_for('teacher.mark_attendance', class_id=subject_class.id) }}">
-    {{ form.hidden_tag() }} {# Main form CSRF token #}
-    {{ form.attendance_date() }} 
+<div class="card shadow-sm"> {# Added card wrapper for the table and submit button #}
+    <div class="card-body p-0"> {# p-0 to make table flush with card edges #}
+        <form method="POST" action="{{ url_for('teacher.mark_attendance', class_id=subject_class.id) }}">
+            {{ form.hidden_tag() }} {# Main form CSRF token #}
+            {{ form.attendance_date() }} {# Renders as type="date", pre-filled #}
 
-    <table class="attendance-table">
-        <thead>
-            <tr>
-                <th class="student-name-col">Student Name</th>
-                <th class="status-col">Status</th>
-                <th class="remarks-col">Remarks</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student_obj in enrolled_students_for_template %}
-                {% set loop_idx = loop.index0 %} 
-                {% set student_form_entry = form.students_attendance[loop_idx] %} 
-                <tr>
-                    <td>
-                        {{ student_obj.first_name }} {{ student_obj.last_name }}
-                        ({{ student_obj.student_id_number }})
-                        {# ADDED ARREARS INDICATOR #}
-                        {% if student_obj.is_in_arrears %}
-                            <span class="arrears-indicator" title="Account in Arrears">!</span>
-                        {% endif %}
-                        {{ student_form_entry.student_id() }} 
-                    </td>
-                    <td>
-                        {{ student_form_entry.status(class="form-control custom-select " + ("is-invalid" if student_form_entry.status.errors else "")) }}
-                        {% if student_form_entry.status.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in student_form_entry.status.errors %}<span>{{ error }}</span><br>{% endfor %}
-                            </div>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {{ student_form_entry.remarks(class="form-control " + ("is-invalid" if student_form_entry.remarks.errors else ""), placeholder="Optional remarks") }}
-                        {% if student_form_entry.remarks.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in student_form_entry.remarks.errors %}<span>{{ error }}</span><br>{% endfor %}
-                            </div>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="submit-button-container">
-        {{ form.submit(class="btn btn-primary btn-lg") }}
+            <div class="table-responsive">
+                <table class="attendance-table mb-0"> {# mb-0 as padding is in card-footer #}
+                    <thead class="table-light">
+                        <tr>
+                            <th class="student-name-col">Student Name</th>
+                            <th class="status-col">Status</th>
+                            <th class="remarks-col">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student_obj in enrolled_students_for_template %}
+                            {% set loop_idx = loop.index0 %} 
+                            {% set student_form_entry = form.students_attendance[loop_idx] %} 
+                            <tr>
+                                <td>
+                                    {{ student_obj.first_name }} {{ student_obj.last_name }}
+                                    <small class="text-muted d-block">({{ student_obj.student_id_number }})</small>
+                                    {% if student_obj.is_in_arrears %}
+                                        <span class="arrears-indicator" title="Account in Arrears">!</span>
+                                    {% endif %}
+                                    {{ student_form_entry.student_id() }} 
+                                </td>
+                                <td>
+                                    {{ student_form_entry.status(class="form-select form-select-sm " + ("is-invalid" if student_form_entry.status.errors else "")) }}
+                                    {% if student_form_entry.status.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in student_form_entry.status.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ student_form_entry.remarks(class="form-control form-control-sm " + ("is-invalid" if student_form_entry.remarks.errors else ""), placeholder="Optional remarks") }}
+                                    {% if student_form_entry.remarks.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in student_form_entry.remarks.errors %}<span>{{ error }}</span><br>{% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer text-end bg-light"> {# Changed to text-end and bg-light #}
+                {{ form.submit(class="btn btn-primary btn-lg") }}
+            </div>
+        </form>
     </div>
-</form>
+</div>
 {% else %}
-<div class="alert alert-info" role="alert">
+<div class="alert alert-info mt-3" role="alert">
     There are no active students currently enrolled in this class to mark attendance for on the selected date.
     Please enroll students via the admin panel or ensure they are active.
 </div>
