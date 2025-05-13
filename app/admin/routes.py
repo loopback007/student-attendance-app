@@ -4,19 +4,19 @@ from flask_login import login_required, current_user
 from wtforms.validators import DataRequired, Length, EqualTo 
 from . import admin # Blueprint
 from app import db 
-from app.decorators import staff_required, admin_required
-# Models: Added Holiday, removed AttendanceStatus
-from app.models import Subject, User, UserRole, Student, SubjectClass, Attendance, Holiday 
-# Forms: Added HolidayForm
+from app.decorators import staff_required, admin_required # Ensure admin_required is imported
+# Models: Added ClassSchedule, Holiday. Removed AttendanceStatus.
+from app.models import Subject, User, UserRole, Student, SubjectClass, Attendance, Holiday, ClassSchedule 
+# Forms: Added HolidayForm. SubjectClassForm now has a FieldList for schedules.
 from app.admin.forms import (
     SubjectForm, TeacherForm, StudentForm, SubjectClassForm, 
     EnrollmentForm, StudentCSVImportForm, ClassCSVImportForm,
-    UserAdminForm, HolidayForm # Added HolidayForm
+    UserAdminForm, HolidayForm 
 )
-from datetime import date, datetime # 'date' is used from datetime
+from datetime import date, datetime, time # Ensure time is imported for schedule processing
 import pandas as pd 
 import io 
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename # For log download
 import os
 import shutil
 
@@ -36,22 +36,16 @@ def admin_dashboard():
     total_teachers = User.query.filter_by(role=UserRole.TEACHER, is_active=True).count()
     total_subjects = Subject.query.count()
     total_classes = SubjectClass.query.count()
-    today = date.today()
-
-    # UPDATED: Attendance model query uses 'date' field
+    today = date.today() 
     todays_attendance_records = Attendance.query.filter_by(date=today).all()
-    
     present_or_late_today = 0
     total_records_today = len(todays_attendance_records)
     for record in todays_attendance_records:
-        # UPDATED: Status comparison uses strings
         if record.status == 'present' or record.status == 'late':
             present_or_late_today += 1
-            
     todays_attendance_rate = 0
     if total_records_today > 0:
         todays_attendance_rate = (present_or_late_today / total_records_today) * 100
-        
     stats = {
         'total_active_students': total_active_students, 'total_teachers': total_teachers,
         'total_subjects': total_subjects, 'total_classes': total_classes,
@@ -136,10 +130,6 @@ def list_teachers():
 @staff_required
 def add_teacher():
     form = TeacherForm()
-    # Ensure password validators are set for new teacher
-    form.password.validators = [DataRequired(), Length(min=6, message="Password should be at least 6 characters long.")]
-    form.confirm_password.validators = [DataRequired(), EqualTo('password', message='Passwords must match.')]
-    
     if form.validate_on_submit():
         new_teacher_user = User(
             username=form.username.data, email=form.email.data,
@@ -164,20 +154,6 @@ def add_teacher():
 def edit_teacher(user_id):
     teacher_user = User.query.filter_by(id=user_id, role=UserRole.TEACHER).first_or_404()
     form = TeacherForm(obj=teacher_user) 
-    
-    # Optional password update logic
-    if request.method == 'POST':
-        if not form.password.data and not form.confirm_password.data:
-            form.password.validators = []
-            form.confirm_password.validators = []
-        else: # If either password field has data, enforce validation for both
-            form.password.validators = [DataRequired(message="Please enter new password or leave both password fields blank."), Length(min=6, message="Password should be at least 6 characters long.")]
-            form.confirm_password.validators = [DataRequired(message="Please confirm new password."), EqualTo('password', message='Passwords must match.')]
-    elif request.method == 'GET': # For GET, clear password validators initially for edit form
-        form.password.validators = [Length(min=6, message="Password should be at least 6 characters long."), Optional()]
-        form.confirm_password.validators = [EqualTo('password', message='Passwords must match.'), Optional()]
-
-
     if form.validate_on_submit():
         teacher_user.username = form.username.data
         teacher_user.email = form.email.data
@@ -282,7 +258,6 @@ def edit_student(student_id):
 @staff_required
 def delete_student(student_id):
     student = Student.query.get_or_404(student_id)
-    # UPDATED: Use new relationship name 'attendances'
     if student.attendances.first() or student.classes_enrolled_in.first():
         flash(f'Cannot delete student {student.first_name} {student.last_name} as they have existing attendance records or class enrollments. Consider deactivating the student instead.', 'danger')
         return redirect(url_for('admin.list_students'))
@@ -295,6 +270,7 @@ def delete_student(student_id):
         flash(f'Error deleting student: {str(e)}', 'danger')
         current_app.logger.error(f"Error deleting student {student_id}: {e}", exc_info=True)
     return redirect(url_for('admin.list_students'))
+
 
 # --- SubjectClass (Classes) CRUD Routes ---
 @admin.route('/classes')
@@ -314,20 +290,42 @@ def add_subject_class():
     form = SubjectClassForm()
     if form.validate_on_submit():
         new_class = SubjectClass(
-            name=form.name.data, subject_id=form.subject.data.id,
+            name=form.name.data, 
+            subject_id=form.subject.data.id,
             teacher_user_id=form.teacher.data.id if form.teacher.data else None,
-            schedule_details=form.schedule_details.data, start_date=form.start_date.data,
-            end_date=form.end_date.data, academic_year=form.academic_year.data
+            start_date=form.start_date.data,
+            end_date=form.end_date.data, 
+            academic_year=form.academic_year.data
         )
+        db.session.add(new_class) 
+        
+        for schedule_entry_form_data in form.schedules.data:
+            if schedule_entry_form_data['day_of_week'] and \
+               schedule_entry_form_data['start_time'] and \
+               schedule_entry_form_data['end_time']:
+                
+                new_schedule = ClassSchedule(
+                    subject_class=new_class, 
+                    day_of_week=schedule_entry_form_data['day_of_week'],
+                    start_time=schedule_entry_form_data['start_time'],
+                    end_time=schedule_entry_form_data['end_time'],
+                    location=schedule_entry_form_data.get('location')
+                )
+                db.session.add(new_schedule) 
+        
         try:
-            db.session.add(new_class)
-            db.session.commit()
-            flash(f'Class "{new_class.name}" added successfully!', 'success')
+            db.session.commit() 
+            flash(f'Class "{new_class.name}" and its schedules added successfully!', 'success')
             return redirect(url_for('admin.list_subject_classes'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error adding class: {str(e)}', 'danger')
             current_app.logger.error(f"Error adding class: {e}", exc_info=True)
+            
+    if request.method == 'GET' and not form.schedules.entries and form.schedules.min_entries > 0:
+        for _ in range(form.schedules.min_entries):
+            form.schedules.append_entry()
+            
     return render_template('admin/subject_class_form.html', form=form, title="Add New Class", legend="New Subject Class")
 
 @admin.route('/classes/edit/<int:class_id>', methods=['GET', 'POST'])
@@ -336,22 +334,77 @@ def add_subject_class():
 def edit_subject_class(class_id):
     subject_class = SubjectClass.query.get_or_404(class_id)
     form = SubjectClassForm(obj=subject_class)
+
     if form.validate_on_submit():
         subject_class.name = form.name.data
         subject_class.subject_id = form.subject.data.id
         subject_class.teacher_user_id = form.teacher.data.id if form.teacher.data else None
-        subject_class.schedule_details = form.schedule_details.data
         subject_class.start_date = form.start_date.data
         subject_class.end_date = form.end_date.data
         subject_class.academic_year = form.academic_year.data
+        
+        existing_schedule_ids = {schedule.id for schedule in subject_class.schedules}
+        submitted_schedule_ids = set()
+        new_schedules_to_add = []
+
+        for schedule_form_data in form.schedules.data:
+            schedule_id_str = schedule_form_data.get('schedule_id')
+            schedule_id = int(schedule_id_str) if schedule_id_str and schedule_id_str.isdigit() else None
+
+            if schedule_form_data['day_of_week'] and schedule_form_data['start_time'] and schedule_form_data['end_time']:
+                if schedule_id and schedule_id in existing_schedule_ids:
+                    sched_to_update = ClassSchedule.query.get(schedule_id)
+                    if sched_to_update:
+                        sched_to_update.day_of_week = schedule_form_data['day_of_week']
+                        sched_to_update.start_time = schedule_form_data['start_time']
+                        sched_to_update.end_time = schedule_form_data['end_time']
+                        sched_to_update.location = schedule_form_data.get('location')
+                        db.session.add(sched_to_update)
+                    submitted_schedule_ids.add(schedule_id)
+                else:
+                    new_schedule = ClassSchedule(
+                        subject_class_id=subject_class.id,
+                        day_of_week=schedule_form_data['day_of_week'],
+                        start_time=schedule_form_data['start_time'],
+                        end_time=schedule_form_data['end_time'],
+                        location=schedule_form_data.get('location')
+                    )
+                    new_schedules_to_add.append(new_schedule)
+        
+        for ns in new_schedules_to_add:
+            db.session.add(ns)
+
+        ids_to_delete = existing_schedule_ids - submitted_schedule_ids
+        for id_to_del in ids_to_delete:
+            sched_to_delete = ClassSchedule.query.get(id_to_del)
+            if sched_to_delete:
+                db.session.delete(sched_to_delete)
+        
         try:
             db.session.commit()
-            flash(f'Class "{subject_class.name}" updated successfully!', 'success')
+            flash(f'Class "{subject_class.name}" and its schedules updated successfully!', 'success')
             return redirect(url_for('admin.list_subject_classes'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating class: {str(e)}', 'danger')
             current_app.logger.error(f"Error updating class {class_id}: {e}", exc_info=True)
+    
+    if request.method == 'GET':
+        while len(form.schedules.entries) > 0:
+            form.schedules.pop_entry()
+        if subject_class.schedules:
+            for schedule in subject_class.schedules.order_by(ClassSchedule.day_of_week, ClassSchedule.start_time).all():
+                form.schedules.append_entry({
+                    'schedule_id': schedule.id,
+                    'day_of_week': schedule.day_of_week,
+                    'start_time': schedule.start_time,
+                    'end_time': schedule.end_time,
+                    'location': schedule.location
+                })
+        if not form.schedules.entries and form.schedules.min_entries > 0:
+            for _ in range(form.schedules.min_entries):
+                form.schedules.append_entry()
+
     return render_template('admin/subject_class_form.html', form=form, title="Edit Class",
                            legend=f"Edit Class: {subject_class.name}", subject_class=subject_class)
 
@@ -360,12 +413,11 @@ def edit_subject_class(class_id):
 @staff_required
 def delete_subject_class(class_id):
     subject_class = SubjectClass.query.get_or_404(class_id)
-    # UPDATED: Use new relationship name 'attendances'
     if subject_class.students_enrolled.first() or subject_class.attendances.first():
         flash(f'Cannot delete class "{subject_class.name}" as students are enrolled or attendance records exist. Please remove enrollments/records first.', 'danger')
         return redirect(url_for('admin.list_subject_classes'))
     try:
-        db.session.delete(subject_class)
+        db.session.delete(subject_class) 
         db.session.commit()
         flash(f'Class "{subject_class.name}" deleted successfully!', 'success')
     except Exception as e:
@@ -436,7 +488,6 @@ def import_students_csv():
     if form.validate_on_submit():
         csv_file = form.csv_file.data
         try:
-            # ... (Keep your existing CSV import logic, ensure it's robust) ...
             csv_data = io.BytesIO(csv_file.read())
             df = pd.read_csv(csv_data)
             required_cols = {'student_id_number': 'student_id_number', 'first_name': 'first_name', 'last_name': 'last_name'}
@@ -448,7 +499,7 @@ def import_students_csv():
                 return render_template('admin/import_students_csv.html', form=form, title="Import Students from CSV")
             
             imported_count = 0; skipped_count = 0; error_rows = []
-            for index, row_data in df.iterrows(): # Use iterrows for Series access
+            for index, row_data in df.iterrows():
                 row_series = pd.Series(row_data)
                 try:
                     student_id_num = str(row_series[required_cols['student_id_number']]).strip(); first_name = str(row_series[required_cols['first_name']]).strip(); last_name = str(row_series[required_cols['last_name']]).strip()
@@ -485,6 +536,7 @@ def import_students_csv():
             return redirect(url_for('admin.list_students'))
         except pd.errors.EmptyDataError: flash("The uploaded CSV file is empty.", "danger")
         except Exception as e: db.session.rollback(); flash(f"An error occurred during CSV processing: {str(e)}", "danger"); current_app.logger.error(f"Student CSV Import Error: {e}", exc_info=True)
+
     return render_template('admin/import_students_csv.html', form=form, title="Import Students from CSV")
 
 @admin.route('/classes/import', methods=['GET', 'POST'])
@@ -495,7 +547,6 @@ def import_classes_csv():
     if form.validate_on_submit():
         csv_file = form.csv_file.data
         try:
-            # ... (Keep your existing CSV import logic, ensure it's robust) ...
             csv_data = io.BytesIO(csv_file.read())
             df = pd.read_csv(csv_data)
             required_cols = { 'class_name': 'class_name', 'subject_identifier': 'subject_identifier' }; optional_cols = { 'teacher_identifier': 'teacher_identifier', 'schedule_details': 'schedule_details', 'academic_year': 'academic_year', 'start_date': 'start_date', 'end_date': 'end_date' }
@@ -504,7 +555,7 @@ def import_classes_csv():
             if missing_required: flash(f"CSV file is missing required columns: {', '.join(missing_required)}.", "danger"); return render_template('admin/import_classes_csv.html', form=form, title="Import Subject Classes from CSV")
             
             imported_count = 0; skipped_count = 0; error_rows = []
-            for index, row_data in df.iterrows(): # Use iterrows for Series access
+            for index, row_data in df.iterrows():
                 row_series = pd.Series(row_data)
                 try:
                     class_name = str(row_series[required_cols['class_name']]).strip(); subject_identifier = str(row_series[required_cols['subject_identifier']]).strip()
@@ -529,7 +580,8 @@ def import_classes_csv():
                     
                     if SubjectClass.query.filter(SubjectClass.name.ilike(class_name)).first(): skipped_count += 1; error_rows.append(f"Row {index+2}: Class name '{class_name}' already exists."); continue
                     
-                    schedule_details = str(row_series.get(optional_cols['schedule_details'], '')).strip() if optional_cols['schedule_details'] in row_series else None
+                    schedule_details_from_csv = str(row_series.get(optional_cols['schedule_details'], '')).strip() if optional_cols['schedule_details'] in row_series else None
+                    
                     academic_year = str(row_series.get(optional_cols['academic_year'], '')).strip() if optional_cols['academic_year'] in row_series else None
                     
                     start_date_str = str(row_series.get(optional_cols['start_date'], '')).strip() if optional_cols['start_date'] in row_series else None; start_date = None
@@ -549,10 +601,13 @@ def import_classes_csv():
                     if start_date and end_date and end_date < start_date: error_rows.append(f"Row {index+2}: End date ({end_date_str}) cannot be before start date ({start_date_str}). Dates ignored."); start_date, end_date = None, None
                     
                     new_class = SubjectClass(name=class_name, subject_id=subject.id, teacher_user_id=teacher_user_id, 
-                                             schedule_details=schedule_details if schedule_details and schedule_details.lower() != 'nan' else None, 
+                                             schedule_details=schedule_details_from_csv if schedule_details_from_csv and schedule_details_from_csv.lower() != 'nan' else None, 
                                              academic_year=academic_year if academic_year and academic_year.lower() != 'nan' else None, 
                                              start_date=start_date, end_date=end_date)
-                    db.session.add(new_class); imported_count += 1
+                    db.session.add(new_class)
+                    # TODO: If CSV for classes includes detailed schedule (day, time for multiple entries),
+                    # parse it here and create ClassSchedule objects linked to new_class.
+                    imported_count += 1
                 except Exception as e_row: skipped_count += 1; error_rows.append(f"Row {index+2}: Error processing row - {str(e_row)}")
             
             if imported_count > 0: db.session.commit()
@@ -661,23 +716,23 @@ def edit_user_admin(user_id):
         flash("Only Superusers can edit other Superusers.", "danger")
         return redirect(url_for('admin.list_all_users'))
         
-    form = UserAdminForm(editing_user=user_to_edit, obj=user_to_edit)
+    form = UserAdminForm(editing_user=user_to_edit, obj=user_to_edit) 
 
     if form.validate_on_submit():
         can_proceed = True
         if user_to_edit.id == current_user.id:
             if UserRole(form.role.data) not in [UserRole.ADMIN, UserRole.SUPERUSER] and current_user.role == UserRole.ADMIN :
                 flash("Administrators cannot demote themselves from Admin/Superuser role.", "danger")
-                form.role.data = current_user.role.value # Revert
+                form.role.data = current_user.role.value 
                 can_proceed = False
             if not form.is_active.data:
                 flash("Administrators cannot deactivate their own account.", "danger")
-                form.is_active.data = True # Revert
+                form.is_active.data = True 
                 can_proceed = False
         
         if user_to_edit.role == UserRole.SUPERUSER and not current_user.is_superuser and UserRole(form.role.data) != UserRole.SUPERUSER:
              flash("Only a Superuser can change the role of another Superuser.", "danger")
-             form.role.data = UserRole.SUPERUSER.value # Revert
+             form.role.data = UserRole.SUPERUSER.value 
              can_proceed = False
         
         if can_proceed:
@@ -688,7 +743,7 @@ def edit_user_admin(user_id):
             user_to_edit.role = UserRole(form.role.data)
             user_to_edit.is_active = form.is_active.data
 
-            if form.password.data:
+            if form.password.data: 
                 user_to_edit.set_password(form.password.data)
             try:
                 db.session.commit()
@@ -699,8 +754,8 @@ def edit_user_admin(user_id):
                 flash(f'Error updating user: {str(e)}', 'danger')
                 current_app.logger.error(f"Error editing user {user_id} by admin: {e}", exc_info=True)
     
-    if request.method == 'GET':
-        form.role.data = user_to_edit.role.value
+    if request.method == 'GET': 
+        form.role.data = user_to_edit.role.value 
 
     return render_template('admin/user_form_admin.html', form=form, title="Edit User", 
                            legend=f"Edit User: {user_to_edit.username}", user_being_edited=user_to_edit)
@@ -719,12 +774,6 @@ def delete_user_admin(user_id):
     if user_to_delete.role == UserRole.TEACHER and user_to_delete.classes_taught.first():
         flash(f"Cannot delete teacher {user_to_delete.username} as they are assigned to classes. Please reassign classes first or deactivate the user.", "warning")
         return redirect(url_for('admin.list_all_users'))
-    
-    # Example check for student: (Adjust how you link User to Student if different)
-    # student_record = Student.query.filter_by(user_account_id=user_to_delete.id).first() 
-    # if student_record and (student_record.attendances.first() or student_record.classes_enrolled_in.first()):
-    #      flash(f"Cannot delete user {user_to_delete.username} as they are a student with existing records. Consider deactivating.", "warning")
-    #      return redirect(url_for('admin.list_all_users'))
     try:
         db.session.delete(user_to_delete)
         db.session.commit()
@@ -735,19 +784,18 @@ def delete_user_admin(user_id):
         current_app.logger.error(f"Error deleting/deactivating user {user_id} by admin: {e}", exc_info=True)
     return redirect(url_for('admin.list_all_users'))
 
-# --- NEW Holiday Management Routes ---
+# --- Holiday Management Routes ---
 @admin.route('/holidays', methods=['GET'])
 @login_required
-@staff_required # Or @admin_required for stricter control
+@staff_required 
 def list_holidays():
     page = request.args.get('page', 1, type=int)
-    # Order by date, perhaps most recent or upcoming first (e.g., date.desc() or date.asc())
-    holidays = Holiday.query.order_by(Holiday.date.asc()).paginate(page=page, per_page=15) # Example: 15 per page
+    holidays = Holiday.query.order_by(Holiday.date.asc()).paginate(page=page, per_page=15)
     return render_template('admin/list_holidays.html', holidays=holidays, title="Manage Holidays & Events")
 
 @admin.route('/holidays/add', methods=['GET', 'POST'])
 @login_required
-@staff_required # Or @admin_required
+@staff_required 
 def add_holiday():
     form = HolidayForm()
     if form.validate_on_submit():
@@ -772,17 +820,16 @@ def add_holiday():
 
 @admin.route('/holidays/edit/<int:holiday_id>', methods=['GET', 'POST'])
 @login_required
-@staff_required # Or @admin_required
+@staff_required 
 def edit_holiday(holiday_id):
     holiday = Holiday.query.get_or_404(holiday_id)
-    form = HolidayForm(obj=holiday) # Pre-populate form with existing data
+    form = HolidayForm(obj=holiday) 
     if form.validate_on_submit():
-        # Check if the date is being changed to one that already has another holiday
-        if form.date.data != holiday.date: # If date was changed
+        if form.date.data != holiday.date: 
             existing_holiday_on_new_date = Holiday.query.filter(Holiday.date == form.date.data, Holiday.id != holiday.id).first()
             if existing_holiday_on_new_date:
                 flash(f'Another holiday/event ("{existing_holiday_on_new_date.name}") already exists for the new date {form.date.data.strftime("%Y-%m-%d")}. Please choose a different date.', 'warning')
-                return render_template('admin/holiday_form.html', form=form, title="Edit Holiday/Event", legend=f"Edit: {holiday.name}", holiday=holiday) # Re-render form
+                return render_template('admin/holiday_form.html', form=form, title="Edit Holiday/Event", legend=f"Edit: {holiday.name}", holiday=holiday)
         
         holiday.name = form.name.data
         holiday.date = form.date.data
@@ -801,7 +848,7 @@ def edit_holiday(holiday_id):
 
 @admin.route('/holidays/delete/<int:holiday_id>', methods=['POST'])
 @login_required
-@staff_required # Or @admin_required
+@staff_required 
 def delete_holiday(holiday_id):
     holiday = Holiday.query.get_or_404(holiday_id)
     try:
@@ -813,65 +860,45 @@ def delete_holiday(holiday_id):
         flash(f'Error deleting holiday/event: {str(e)}', 'danger')
         current_app.logger.error(f"Error deleting holiday {holiday_id}: {e}", exc_info=True)
     return redirect(url_for('admin.list_holidays'))
-    
-    
+
+
 # --- System Log Viewer Route ---
 @admin.route('/system-logs')
 @login_required
-@admin_required # Ensure only appropriate users can access
+@admin_required 
 def view_system_logs():
-    # CORRECTED PATH to use instance_path
     log_dir = os.path.join(current_app.instance_path, 'logs') 
     log_file_path_app = os.path.join(log_dir, 'attendance_app.log')
-    
     log_content = {}
-    
     try:
         with open(log_file_path_app, 'r') as f:
             lines = f.readlines()
-            log_content['app_log'] = "".join(lines[-200:]) # Get last 200 lines
+            log_content['app_log'] = "".join(lines[-200:]) 
     except FileNotFoundError:
-        log_content['app_log'] = f"Application log file not found at: {log_file_path_app}" # Show expected path
+        log_content['app_log'] = f"Application log file not found at: {log_file_path_app}"
         current_app.logger.warning(f"Log file not found by admin viewer: {log_file_path_app}")
     except Exception as e:
         log_content['app_log'] = f"Error reading application log: {str(e)}"
         current_app.logger.error(f"Error reading app log for display: {e}", exc_info=True)
-
-    # Example for Gunicorn error log (optional - ensure path is correct if you use it)
-    # log_file_path_gunicorn_error = os.path.join(log_dir, 'gunicorn_error.log')
-    # try:
-    #     with open(log_file_path_gunicorn_error, 'r') as f:
-    #         lines = f.readlines()
-    #         log_content['gunicorn_error_log'] = "".join(lines[-100:]) 
-    # except FileNotFoundError:
-    #     log_content['gunicorn_error_log'] = "Gunicorn error log file not found."
-    # except Exception as e:
-    #     log_content['gunicorn_error_log'] = f"Error reading Gunicorn error log: {str(e)}"
-
     return render_template('admin/system_logs.html', 
                            log_content=log_content, 
                            title="View System Logs")
 
-# Optional: Route to download a specific log file
 @admin.route('/system-logs/download/<log_type>')
 @login_required
 @admin_required
 def download_log_file(log_type):
-    # CORRECTED PATH to use instance_path
     log_dir = os.path.join(current_app.instance_path, 'logs')
     log_filename = None
-
     if log_type == "app":
         log_filename = "attendance_app.log"
-    elif log_type == "gunicorn_error": # Example
-        log_filename = "gunicorn_error.log"
-    # Add more types as needed
+    # Add more log types here if needed e.g. gunicorn_error
+    # elif log_type == "gunicorn_error":
+    #     log_filename = "gunicorn_error.log"
 
     if log_filename:
-        # Sanitize filename just in case, though log_type is controlled here
         safe_log_filename = secure_filename(log_filename) 
         log_file_path = os.path.join(log_dir, safe_log_filename)
-        
         if os.path.exists(log_file_path):
             try:
                 return send_file(log_file_path, as_attachment=True)
@@ -884,3 +911,4 @@ def download_log_file(log_type):
     else:
         flash("Invalid log type specified for download.", "danger")
     return redirect(url_for('admin.view_system_logs'))
+

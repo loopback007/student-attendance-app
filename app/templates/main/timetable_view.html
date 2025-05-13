@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extensions %}
+{{ super() }}
+<style>
+    .timetable-container {
+        margin-top: 20px;
+    }
+    .timetable-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: .25rem;
+    }
+    .timetable-navigation .current-week {
+        font-size: 1.25rem;
+        font-weight: 500;
+    }
+    .timetable {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed; /* Important for equal column widths */
+    }
+    .timetable th, .timetable td {
+        border: 1px solid #dee2e6;
+        padding: 0.5rem;
+        text-align: center;
+        vertical-align: top; /* Align content to the top of the cell */
+        height: 80px; /* Minimum height for a timeslot cell */
+    }
+    .timetable th.time-slot-header { /* Header for the time column */
+        width: 100px; /* Fixed width for time column */
+        font-size: 0.8rem;
+        font-weight: normal;
+        background-color: #f8f9fa;
+    }
+    .timetable th.day-header { /* Headers for Monday, Tuesday, etc. */
+        background-color: #f0f0f0;
+        font-size: 0.9rem;
+    }
+    .timetable td.time-label { /* Cells showing the time slot label */
+        font-weight: bold;
+        font-size: 0.8rem;
+        background-color: #f8f9fa;
+        text-align: right;
+        padding-right: 10px;
+    }
+    .timetable-entry {
+        background-color: var(--bs-primary-bg-subtle);
+        border: 1px solid var(--bs-primary-border-subtle);
+        color: var(--bs-primary); /* Ensure text is visible against subtle background */
+        padding: 5px;
+        margin-bottom: 5px;
+        border-radius: 3px;
+        font-size: 0.75rem; /* Smaller font for entries */
+        text-align: left;
+        overflow: hidden; /* Prevent long text from breaking layout */
+        position: relative; 
+    }
+    .timetable-entry strong {
+        display: block;
+        font-size: 0.9em; 
+        color: var(--bs-primary); /* Ensure class name is prominent */
+    }
+    .timetable-entry .subject-name {
+        display: block;
+        font-size: 0.85em;
+        color: #495057; /* Slightly darker for better readability */
+    }
+    .timetable-entry .teacher-name,
+    .timetable-entry .location-name,
+    .timetable-entry .time-range {
+        display: block;
+        font-size: 0.8em; 
+        color: #6c757d; /* Muted color for secondary details */
+    }
+    .table-responsive-wrapper {
+        overflow-x: auto; 
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid timetable-container">
+    <div class="timetable-navigation">
+        <a href="{{ url_for('main.school_timetable', date=prev_week_str) }}" class="btn btn-outline-primary">&laquo; Previous Week</a>
+        <span class="current-week">{{ current_week_label }}</span>
+        <a href="{{ url_for('main.school_timetable', date=next_week_str) }}" class="btn btn-outline-primary">Next Week &raquo;</a>
+    </div>
+    
+    <div class="d-flex justify-content-center mb-3">
+        <form method="GET" action="{{ url_for('main.school_timetable') }}" class="d-flex align-items-center">
+            <label for="date_picker" class="form-label me-2 mb-0">Go to week of:</label>
+            <input type="date" id="date_picker" name="date" value="{{ start_of_week_str }}" class="form-control form-control-sm" style="width: auto;">
+            <button type="submit" class="btn btn-secondary btn-sm ms-2">View</button>
+        </form>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h4 class="mb-0">Weekly Timetable</h4>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive-wrapper">
+                <table class="timetable">
+                    <thead>
+                        <tr>
+                            <th class="time-slot-header">Time</th>
+                            {% for day in days_of_week %}
+                                <th class="day-header">{{ day }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in time_slots %}
+                            <tr>
+                                <td class="time-label">{{ slot }} - {{ (datetime.strptime(slot, '%H:%M') + timedelta(hours=1)).strftime('%H:%M') }}</td>
+                                {% for day in days_of_week %}
+                                    <td>
+                                        {% if timetable_data[day][slot] %}
+                                            {% for entry in timetable_data[day][slot] %}
+                                                <div class="timetable-entry" title="{{ entry.subject_name }} with {{ entry.teacher_name }} from {{ entry.start_time_str }} to {{ entry.end_time_str }} {% if entry.location and entry.location != 'N/A' %} at {{ entry.location }}{% endif %}">
+                                                    <strong>{{ entry.class_name }}</strong>
+                                                    <span class="subject-name">{{ entry.subject_name }}</span>
+                                                    {% if entry.teacher_name != "N/A" %}
+                                                        <span class="teacher-name">Teacher: {{ entry.teacher_name }}</span>
+                                                    {% endif %}
+                                                    {% if entry.location and entry.location != "N/A" %}
+                                                        <span class="location-name">Loc: {{ entry.location }}</span>
+                                                    {% endif %}
+                                                    <span class="time-range">{{ entry.start_time_str }} - {{ entry.end_time_str }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            &nbsp; {# Non-breaking space for empty cells #}
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+         <div class="card-footer">
+            <small class="text-muted">
+                Timetable shows classes based on their scheduled start times within each one-hour slot.
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{# Add any specific JS for this page if needed later #}
+{% endblock %}

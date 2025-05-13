@@ -66,6 +66,7 @@
         </p>
     </div>
     <a href="{{ url_for('teacher.my_classes') }}" class="btn btn-outline-secondary btn-sm">Back to My Classes</a>
+    <a href="{{ url_for('teacher.monthly_class_attendance_matrix', class_id=subject_class.id) }}" class="btn btn-outline-secondary btn-sm">View Monthly Matrix</a>
 </div>
 
 <div class="report-summary-info">

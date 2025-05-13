@@ -81,7 +81,7 @@ def create_app(config_name=None):
         file_handler.setFormatter(logging.Formatter(
             '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
         ))
-        file_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.DEBUG)
 
         if not any(isinstance(handler, RotatingFileHandler) and handler.baseFilename == file_handler.baseFilename for handler in app.logger.handlers):
             app.logger.addHandler(file_handler)
@@ -89,7 +89,7 @@ def create_app(config_name=None):
         else:
             print("INFO: [Logging] RotatingFileHandler already present for this file.")
 
-        app.logger.setLevel(logging.INFO)
+        app.logger.setLevel(logging.DEBUG)
         app.logger.info('Attendance App startup - File logging active and initialized.')
     else:
         print(f"WARNING: [Logging] Log directory {log_directory} does NOT exist or is NOT writable. File logging SKIPPED.")

@@ -100,7 +100,9 @@
                         {% if current_user.is_authenticated %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                                <a class="nav-link {% if request.endpoint == 'main.school_timetable' %}active{% endif %}" href="{{ url_for('main.school_timetable') }}">School Timetable</a>
                             </li>
+                            
                             {% if current_user.is_superuser or current_user.is_admin or current_user.is_staff %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminMenuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

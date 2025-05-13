@@ -1,138 +1,245 @@
-{% extends "base.html" %} {# Assumes base_html_bootstrap is your base.html #}
+{% extends "base.html" %}
 
-{% block title %}{{ title }} - The Temple of Fine Arts Johor Bahru Attendance Tracker{% endblock %}
+{% block title %}{{ legend }} - Manage Classes{% endblock %}
 
 {% block head_extensions %}
+{{ super() }}
 <style>
-    /* Page-specific styles can go here if needed */
     .form-container {
-        max-width: 850px; /* Max width for the form card */
-        margin-top: 2rem; /* Some space from the navbar */
-        margin-bottom: 3rem; /* Space from footer */
+        max-width: 800px; /* Wider for more fields */
+        margin: auto;
     }
-    .form-card-header {
-        background-color: var(--bs-primary-bg-subtle); 
-        border-bottom: 1px solid var(--bs-primary-border-subtle);
-        color: var(--bs-primary); 
-        padding: 1rem 1.25rem;
+    .schedule-entry {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+        background-color: #f9f9f9;
     }
-    .form-card-header h2 {
-        font-size: 1.5rem; 
+    .schedule-entry legend { /* If you use a legend inside */
+        font-size: 1rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
     }
-    .form-buttons .btn {
-        min-width: 100px; /* Ensure buttons have a decent minimum width */
+    .schedule-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
+        align-items: flex-end; 
     }
-    .form-text.text-muted { /* For field descriptions */
-        font-size: 0.875em;
-        display: block; /* Ensure it takes its own line */
-        margin-top: .25rem;
+    .schedule-actions {
+        margin-top: 10px;
+        text-align: right;
+    }
+    .remove-schedule-btn {
+        font-size: 0.8em;
+    }
+    input[type="hidden"] {
+        display: none;
+    }
+    /* Add a little top margin to dynamically added schedule entries for better separation */
+    #schedules-container > .schedule-entry + .schedule-entry {
+        margin-top: 1rem;
+    }
+    .icon-text .fas, .icon-text .far, .icon-text .fab, .icon-text .bi { /* For icons in buttons */
+        margin-right: 0.3rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container form-container">
+<div class="container-fluid mt-4 form-container">
     <div class="card shadow-sm">
-        <div class="card-header form-card-header">
-            <h2 class="text-center mb-0">{{ legend }}</h2>
+        <div class="card-header">
+            <h2 class="mb-0">{{ legend }}</h2>
         </div>
-        <div class="card-body p-4">
-            <form method="POST" action=""> {# Action URL is determined by the route for add or edit #}
-                {{ form.hidden_tag() }} {# CSRF token #}
+        <div class="card-body">
+            <form method="POST" action="" novalidate id="subjectClassForm">
+                {{ form.hidden_tag() }} 
                 
-                <div class="mb-3">
-                    {{ form.name.label(class="form-label") }}
-                    {% if form.name.errors %}
-                        {{ form.name(class="form-control form-control-lg is-invalid", placeholder=form.name.description) }}
-                        <div class="invalid-feedback">
-                            {% for error in form.name.errors %}<span>{{ error }}</span>{% endfor %}
+                <fieldset class="mb-4">
+                    <legend class="h5 border-bottom pb-2 mb-3">Class Details</legend>
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g., Bharatanatyam - Beginners Year 1") }}
+                        {% if form.name.errors %}<div class="invalid-feedback">{% for error in form.name.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.subject.label(class="form-label") }}
+                            {{ form.subject(class="form-select" + (" is-invalid" if form.subject.errors else "")) }}
+                            {% if form.subject.errors %}<div class="invalid-feedback">{% for error in form.subject.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
                         </div>
-                    {% else %}
-                        {{ form.name(class="form-control form-control-lg", placeholder=form.name.description) }}
-                    {% endif %}
-                    {% if form.name.description %}<small class="form-text text-muted">{{ form.name.description }}</small>{% endif %}
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        {{ form.subject.label(class="form-label") }}
-                        {# QuerySelectField renders as a select element #}
-                        {{ form.subject(class="form-select " + ("is-invalid" if form.subject.errors else "")) }}
-                        {% if form.subject.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.subject.errors %}<span>{{ error }}</span>{% endfor %}
-                            </div>
-                        {% endif %}
+                        <div class="col-md-6 mb-3">
+                            {{ form.teacher.label(class="form-label") }}
+                            {{ form.teacher(class="form-select" + (" is-invalid" if form.teacher.errors else "")) }}
+                            {% if form.teacher.errors %}<div class="invalid-feedback">{% for error in form.teacher.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        {{ form.teacher.label(class="form-label") }}
-                        {# QuerySelectField renders as a select element #}
-                        {{ form.teacher(class="form-select " + ("is-invalid" if form.teacher.errors else "")) }}
-                        {% if form.teacher.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.teacher.errors %}<span>{{ error }}</span>{% endfor %}
-                            </div>
-                        {% endif %}
-                        {% if form.teacher.description %}<small class="form-text text-muted">{{ form.teacher.description }}</small>{% endif %}
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            {{ form.academic_year.label(class="form-label") }}
+                            {{ form.academic_year(class="form-control" + (" is-invalid" if form.academic_year.errors else ""), placeholder="e.g., 2025") }}
+                            {% if form.academic_year.errors %}<div class="invalid-feedback">{% for error in form.academic_year.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.start_date.label(class="form-label") }}
+                            {{ form.start_date(class="form-control" + (" is-invalid" if form.start_date.errors else ""), type="date") }}
+                            {% if form.start_date.errors %}<div class="invalid-feedback">{% for error in form.start_date.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.end_date.label(class="form-label") }}
+                            {{ form.end_date(class="form-control" + (" is-invalid" if form.end_date.errors else ""), type="date") }}
+                            {% if form.end_date.errors %}<div class="invalid-feedback">{% for error in form.end_date.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                        </div>
                     </div>
-                </div>
+                </fieldset>
                 
-                <div class="mb-3">
-                    {{ form.schedule_details.label(class="form-label") }}
-                    {% if form.schedule_details.errors %}
-                        {{ form.schedule_details(class="form-control is-invalid", placeholder=form.schedule_details.description) }}
-                        <div class="invalid-feedback">
-                            {% for error in form.schedule_details.errors %}<span>{{ error }}</span>{% endfor %}
-                        </div>
-                    {% else %}
-                        {{ form.schedule_details(class="form-control", placeholder=form.schedule_details.description) }}
-                    {% endif %}
-                    {% if form.schedule_details.description %}<small class="form-text text-muted">{{ form.schedule_details.description }}</small>{% endif %}
-                </div>
+                <fieldset class="mb-3">
+                    <legend class="h5 border-bottom pb-2 mb-3">Weekly Schedules</legend>
+                    <div id="schedules-container">
+                        {# Loop through existing schedule entries (FieldList rendered by server) #}
+                        {% for schedule_form_entry in form.schedules %}
+                            <div class="schedule-entry">
+                                {{ schedule_form_entry.schedule_id() }} {# Hidden field for existing schedule ID #}
+                                <div class="schedule-fields">
+                                    <div class="form-group">
+                                        {{ schedule_form_entry.day_of_week.label(class="form-label") }}
+                                        {{ schedule_form_entry.day_of_week(class="form-select form-select-sm" + (" is-invalid" if schedule_form_entry.day_of_week.errors else "")) }}
+                                        {% if schedule_form_entry.day_of_week.errors %}<div class="invalid-feedback d-block">{% for error in schedule_form_entry.day_of_week.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                                    </div>
+                                    <div class="form-group">
+                                        {{ schedule_form_entry.start_time.label(class="form-label") }}
+                                        {{ schedule_form_entry.start_time(class="form-control form-control-sm" + (" is-invalid" if schedule_form_entry.start_time.errors else ""), type="time") }}
+                                        {% if schedule_form_entry.start_time.errors %}<div class="invalid-feedback d-block">{% for error in schedule_form_entry.start_time.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                                    </div>
+                                    <div class="form-group">
+                                        {{ schedule_form_entry.end_time.label(class="form-label") }}
+                                        {{ schedule_form_entry.end_time(class="form-control form-control-sm" + (" is-invalid" if schedule_form_entry.end_time.errors else ""), type="time") }}
+                                        {% if schedule_form_entry.end_time.errors %}<div class="invalid-feedback d-block">{% for error in schedule_form_entry.end_time.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                                    </div>
+                                    <div class="form-group">
+                                        {{ schedule_form_entry.location.label(class="form-label") }}
+                                        {{ schedule_form_entry.location(class="form-control form-control-sm" + (" is-invalid" if schedule_form_entry.location.errors else ""), placeholder="e.g., Room 101") }}
+                                        {% if schedule_form_entry.location.errors %}<div class="invalid-feedback d-block">{% for error in schedule_form_entry.location.errors %}<span>{{ error }}</span><br>{% endfor %}</div>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="schedule-actions">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-schedule-btn icon-text"><i class="fas fa-times"></i> Remove</button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" id="add-schedule-btn" class="btn btn-outline-success btn-sm mt-2 icon-text"><i class="fas fa-plus"></i> Add Schedule Slot</button>
+                </fieldset>
 
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        {{ form.start_date.label(class="form-label") }}
-                        {% if form.start_date.errors %}
-                            {{ form.start_date(class="form-control is-invalid", placeholder="YYYY-MM-DD") }}
-                            <div class="invalid-feedback">
-                                {% for error in form.start_date.errors %}<span>{{ error }}</span>{% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.start_date(class="form-control", placeholder="YYYY-MM-DD") }}
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        {{ form.end_date.label(class="form-label") }}
-                        {% if form.end_date.errors %}
-                            {{ form.end_date(class="form-control is-invalid", placeholder="YYYY-MM-DD") }}
-                            <div class="invalid-feedback">
-                                {% for error in form.end_date.errors %}<span>{{ error }}</span>{% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.end_date(class="form-control", placeholder="YYYY-MM-DD") }}
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        {{ form.academic_year.label(class="form-label") }}
-                        {% if form.academic_year.errors %}
-                            {{ form.academic_year(class="form-control is-invalid", placeholder=form.academic_year.description) }}
-                            <div class="invalid-feedback">
-                                {% for error in form.academic_year.errors %}<span>{{ error }}</span>{% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.academic_year(class="form-control", placeholder=form.academic_year.description) }}
-                        {% endif %}
-                        {% if form.academic_year.description %}<small class="form-text text-muted">{{ form.academic_year.description }}</small>{% endif %}
-                    </div>
-                </div>
-
-                <div class="form-group form-buttons d-flex justify-content-end mt-4">
-                    <a href="{{ url_for('admin.list_subject_classes') }}" class="btn btn-secondary me-2">Cancel</a>
+                <hr>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('admin.list_subject_classes') }}" class="btn btn-outline-secondary">Cancel</a>
                     {{ form.submit(class="btn btn-primary") }}
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+{# Template for new schedule entries (used by JavaScript) - hidden by default #}
+<template id="schedule-template-item">
+    <div class="schedule-entry">
+        <div class="schedule-fields">
+            <div class="form-group">
+                <label class="form-label" for="schedules-__prefix__-day_of_week">Day</label>
+                <select class="form-select form-select-sm" id="schedules-__prefix__-day_of_week" name="schedules-__prefix__-day_of_week">
+                    <option value="" selected>-- Select Day --</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="schedules-__prefix__-start_time">Start Time</label>
+                <input class="form-control form-control-sm" id="schedules-__prefix__-start_time" name="schedules-__prefix__-start_time" type="time">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="schedules-__prefix__-end_time">End Time</label>
+                <input class="form-control form-control-sm" id="schedules-__prefix__-end_time" name="schedules-__prefix__-end_time" type="time">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="schedules-__prefix__-location">Location</label>
+                <input class="form-control form-control-sm" id="schedules-__prefix__-location" name="schedules-__prefix__-location" placeholder="e.g., Room 101" type="text">
+            </div>
+            {# This hidden field is for new entries; its value will be empty. 
+               The server-side logic for edit will distinguish new vs. existing by checking if schedule_id is present and valid. #}
+            <input id="schedules-__prefix__-schedule_id" name="schedules-__prefix__-schedule_id" type="hidden" value="">
+        </div>
+        <div class="schedule-actions">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-schedule-btn icon-text"><i class="fas fa-times"></i> Remove</button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("DEBUG: Schedule JS Loaded"); // For checking if script runs
+
+    const schedulesContainer = document.getElementById('schedules-container');
+    const addScheduleBtn = document.getElementById('add-schedule-btn');
+    const scheduleTemplateElement = document.getElementById('schedule-template-item');
+
+    if (!schedulesContainer || !addScheduleBtn || !scheduleTemplateElement) {
+        console.error("DEBUG ERROR: Schedule JS - One or more essential DOM elements (schedules-container, add-schedule-btn, or schedule-template-item) are missing.");
+        return;
+    }
+    
+    const scheduleTemplateHTML = scheduleTemplateElement.innerHTML;
+    
+    let scheduleEntryCount = schedulesContainer.querySelectorAll('.schedule-entry').length;
+    console.log("DEBUG: Initial schedule entry count (from server-rendered forms):", scheduleEntryCount);
+
+
+    addScheduleBtn.addEventListener('click', function () {
+        console.log("DEBUG: Add schedule button clicked. Next index will be:", scheduleEntryCount);
+        
+        const newEntryHtml = scheduleTemplateHTML.replace(/__prefix__/g, scheduleEntryCount);
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newEntryHtml.trim(); 
+        const newScheduleElement = tempDiv.firstChild;
+
+        if (newScheduleElement) {
+            schedulesContainer.appendChild(newScheduleElement);
+            console.log("DEBUG: New schedule entry added to DOM with index:", scheduleEntryCount);
+            scheduleEntryCount++; 
+        } else {
+            console.error("DEBUG ERROR: Schedule JS - Failed to create new schedule element from template.");
+        }
+    });
+
+    schedulesContainer.addEventListener('click', function (event) {
+        let targetButton = event.target;
+        // Traverse up if the click was on an icon inside the button
+        while(targetButton != null && !targetButton.classList.contains('remove-schedule-btn')) {
+            targetButton = targetButton.parentElement;
+        }
+
+        if (targetButton && targetButton.classList.contains('remove-schedule-btn')) {
+            event.preventDefault(); 
+            const scheduleEntryToRemove = targetButton.closest('.schedule-entry');
+            if (scheduleEntryToRemove) {
+                console.log("DEBUG: Removing schedule entry:", scheduleEntryToRemove);
+                scheduleEntryToRemove.remove();
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

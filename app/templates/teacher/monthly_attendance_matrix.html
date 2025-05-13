@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Attendance Tracker{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .month-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    .month-navigation .current-month-year {
+        font-size: 1.5rem;
+        font-weight: 500;
+    }
+    .attendance-matrix-table {
+        table-layout: fixed; /* Helps with column widths */
+        width: 100%;
+        font-size: 0.85rem; /* Smaller font for more data */
+    }
+    .attendance-matrix-table th, .attendance-matrix-table td {
+        text-align: center;
+        vertical-align: middle;
+        padding: 0.4rem 0.2rem; /* Adjust padding */
+        border: 1px solid #e0e0e0;
+        white-space: nowrap; /* Prevent wrapping in date cells */
+    }
+    .attendance-matrix-table th.student-name-col {
+        text-align: left;
+        width: 200px; /* Fixed width for student name */
+        white-space: normal;
+        background-color: #f8f9fa;
+        position: sticky; /* Sticky student name column */
+        left: 0;
+        z-index: 1;
+    }
+    .attendance-matrix-table thead th {
+        background-color: #f8f9fa;
+        font-size: 0.75rem;
+        padding: 0.5rem 0.2rem;
+        position: sticky;
+        top: 0; /* Sticky header */
+        z-index: 2;
+    }
+    .attendance-matrix-table .date-header span {
+        display: block;
+        font-size: 0.9em; /* Day of week */
+    }
+    .attendance-matrix-table .date-header strong {
+        display: block;
+        font-size: 1.1em; /* Date number */
+    }
+    .status-P { background-color: #d4edda; color: #155724; } /* Present - Greenish */
+    .status-A { background-color: #f8d7da; color: #721c24; } /* Absent - Reddish */
+    .status-L { background-color: #fff3cd; color: #856404; } /* Late - Yellowish */
+    .status-E { background-color: #d1ecf1; color: #0c5460; } /* Excused - Bluish */
+    .status-public_holiday, .status-school_holiday { background-color: #e2e3e5; color: #383d41; } /* Holiday - Greyish */
+    .status- { /* Empty status - no record */
+        background-color: #fdfdfd; 
+    }
+    .table-wrapper {
+        overflow-x: auto; /* Allow horizontal scrolling for the table */
+        margin-bottom: 1rem;
+    }
+    .year-month-selector-form {
+        margin-bottom: 1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">{{ title }}</h2>
+            <p class="text-muted mb-0">Subject: {{ subject_class.subject_taught.name if subject_class.subject_taught else 'N/A' }}</p>
+        </div>
+        <a href="{{ url_for('teacher.my_classes') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Back to My Classes
+        </a>
+    </div>
+
+    <div class="month-navigation">
+        <a href="{{ url_for('teacher.monthly_class_attendance_matrix', class_id=subject_class.id, year=prev_month_nav.year, month=prev_month_nav.month) }}" class="btn btn-outline-primary btn-sm">&laquo; Previous Month</a>
+        <span class="current-month-year">{{ month_name }} {{ selected_year }}</span>
+        <a href="{{ url_for('teacher.monthly_class_attendance_matrix', class_id=subject_class.id, year=next_month_nav.year, month=next_month_nav.month) }}" class="btn btn-outline-primary btn-sm">Next Month &raquo;</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('teacher.monthly_class_attendance_matrix', class_id=subject_class.id) }}" class="year-month-selector-form">
+        <label for="year_select" class="form-label mb-0">Year:</label>
+        <select name="year" id="year_select" class="form-select form-select-sm" style="width: auto;">
+            {% for yr in available_years %}
+            <option value="{{ yr }}" {% if yr == selected_year %}selected{% endif %}>{{ yr }}</option>
+            {% endfor %}
+        </select>
+        <label for="month_select" class="form-label mb-0 ms-2">Month:</label>
+        <select name="month" id="month_select" class="form-select form-select-sm" style="width: auto;">
+            {% for m_num in range(1, 13) %}
+            <option value="{{ m_num }}" {% if m_num == selected_month %}selected{% endif %}>{{ calendar.month_name[m_num] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary btn-sm ms-2">View</button>
+    </form>
+
+    {% if students_data and class_session_dates %}
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Attendance Matrix</h5>
+        </div>
+        <div class="card-body p-0 table-wrapper">
+            <table class="table table-bordered attendance-matrix-table">
+                <thead>
+                    <tr>
+                        <th class="student-name-col">Student Name</th>
+                        {% for session_date in class_session_dates %}
+                        <th class="date-header">
+                            <span>{{ session_date.strftime('%a') }}</span> {# Mon, Tue #}
+                            <strong>{{ session_date.strftime('%d') }}</strong> {# 01, 02 #}
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in students_data %}
+                    <tr>
+                        <td class="student-name-col">
+                            {{ item.student.first_name }} {{ item.student.last_name }}
+                            <small class="text-muted d-block">({{ item.student.student_id_number }})</small>
+                        </td>
+                        {% for session_date in class_session_dates %}
+                            {% set status = item.attendance_by_date.get(session_date, '') %}
+                            {# Map status string to a display character or use status directly #}
+                            {% set display_status = status[0].upper() if status else '-' %}
+                            {% if status == 'public_holiday' or status == 'school_holiday' %}
+                                {% set display_status = 'H' %}
+                            {% endif %}
+                            <td class="status-{{ status if status else '' }}" title="{{ status.replace('_', ' ')|title if status else 'No Record' }} ({{ session_date.strftime('%Y-%m-%d') }})">
+                                {{ display_status }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+         <div class="card-footer">
+            <small class="text-muted">
+                Legend: P=Present, A=Absent, L=Late, E=Excused, H=Holiday, -=No Record
+            </small>
+        </div>
+    </div>
+    {% elif not class_session_dates %}
+    <div class="alert alert-warning mt-3" role="alert">
+        No scheduled class sessions found for <strong>{{ subject_class.name }}</strong> in {{ month_name }} {{ selected_year }} based on the current schedule information.
+        Please check the class schedule details or select a different month/year.
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3" role="alert">
+        No students are currently enrolled in this class, or no attendance data is available for the selected period.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Optional: Add any JS needed for this page, e.g., for advanced filters or interactions
+});
+</script>
+{% endblock %}
