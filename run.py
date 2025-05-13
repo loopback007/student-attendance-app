@@ -3,7 +3,8 @@
 import os
 from app import create_app, db # Import create_app factory and db instance
 # Import all models and enums that you want available in flask shell
-from app.models import User, UserRole, Subject, SubjectClass, Student, Attendance, AttendanceStatus, enrollments 
+#from app.models import User, UserRole, Subject, SubjectClass, Student, Attendance, AttendanceStatus, enrollments 
+from app.models import User, UserRole, Subject, SubjectClass, Student, Attendance, enrollments, ATTENDANCE_STATUS_CHOICES # Optionally import the new list
 from flask_migrate import Migrate 
 
 # Get the configuration name from environment variable or use default
@@ -72,7 +73,8 @@ def make_shell_context():
         'SubjectClass': SubjectClass,
         'Student': Student,
         'Attendance': Attendance,
-        'AttendanceStatus': AttendanceStatus, # ADDED/VERIFIED: Enum for attendance status
+        'ATTENDANCE_STATUS_CHOICES': ATTENDANCE_STATUS_CHOICES, # Optionally add the new list
+        #'AttendanceStatus': AttendanceStatus, # ADDED/VERIFIED: Enum for attendance status
         'enrollments': enrollments # Association table
     }
 

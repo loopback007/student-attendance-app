@@ -813,3 +813,74 @@ def delete_holiday(holiday_id):
         flash(f'Error deleting holiday/event: {str(e)}', 'danger')
         current_app.logger.error(f"Error deleting holiday {holiday_id}: {e}", exc_info=True)
     return redirect(url_for('admin.list_holidays'))
+    
+    
+# --- System Log Viewer Route ---
+@admin.route('/system-logs')
+@login_required
+@admin_required # Ensure only appropriate users can access
+def view_system_logs():
+    # CORRECTED PATH to use instance_path
+    log_dir = os.path.join(current_app.instance_path, 'logs') 
+    log_file_path_app = os.path.join(log_dir, 'attendance_app.log')
+    
+    log_content = {}
+    
+    try:
+        with open(log_file_path_app, 'r') as f:
+            lines = f.readlines()
+            log_content['app_log'] = "".join(lines[-200:]) # Get last 200 lines
+    except FileNotFoundError:
+        log_content['app_log'] = f"Application log file not found at: {log_file_path_app}" # Show expected path
+        current_app.logger.warning(f"Log file not found by admin viewer: {log_file_path_app}")
+    except Exception as e:
+        log_content['app_log'] = f"Error reading application log: {str(e)}"
+        current_app.logger.error(f"Error reading app log for display: {e}", exc_info=True)
+
+    # Example for Gunicorn error log (optional - ensure path is correct if you use it)
+    # log_file_path_gunicorn_error = os.path.join(log_dir, 'gunicorn_error.log')
+    # try:
+    #     with open(log_file_path_gunicorn_error, 'r') as f:
+    #         lines = f.readlines()
+    #         log_content['gunicorn_error_log'] = "".join(lines[-100:]) 
+    # except FileNotFoundError:
+    #     log_content['gunicorn_error_log'] = "Gunicorn error log file not found."
+    # except Exception as e:
+    #     log_content['gunicorn_error_log'] = f"Error reading Gunicorn error log: {str(e)}"
+
+    return render_template('admin/system_logs.html', 
+                           log_content=log_content, 
+                           title="View System Logs")
+
+# Optional: Route to download a specific log file
+@admin.route('/system-logs/download/<log_type>')
+@login_required
+@admin_required
+def download_log_file(log_type):
+    # CORRECTED PATH to use instance_path
+    log_dir = os.path.join(current_app.instance_path, 'logs')
+    log_filename = None
+
+    if log_type == "app":
+        log_filename = "attendance_app.log"
+    elif log_type == "gunicorn_error": # Example
+        log_filename = "gunicorn_error.log"
+    # Add more types as needed
+
+    if log_filename:
+        # Sanitize filename just in case, though log_type is controlled here
+        safe_log_filename = secure_filename(log_filename) 
+        log_file_path = os.path.join(log_dir, safe_log_filename)
+        
+        if os.path.exists(log_file_path):
+            try:
+                return send_file(log_file_path, as_attachment=True)
+            except Exception as e:
+                flash(f"Error downloading log file {safe_log_filename}: {str(e)}", "danger")
+                current_app.logger.error(f"Error downloading log {safe_log_filename}: {e}", exc_info=True)
+        else:
+            flash(f"Log file {safe_log_filename} not found at {log_dir}.", "danger")
+            current_app.logger.warning(f"Download attempt for non-existent log: {log_file_path}")
+    else:
+        flash("Invalid log type specified for download.", "danger")
+    return redirect(url_for('admin.view_system_logs'))

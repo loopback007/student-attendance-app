@@ -14,6 +14,7 @@ services:
     environment:
       - FLASK_APP=run.py
       - FLASK_ENV=production # Ensures Flask runs in production mode
+      - FLASK_CONFIG=production
       - FLASK_DEBUG=0
       - DOCKER_CONTAINER=true
       # - SECRET_KEY=your_very_strong_production_secret_key # IMPORTANT: Set this in a .env file or directly for production

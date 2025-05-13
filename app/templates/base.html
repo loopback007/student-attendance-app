@@ -124,6 +124,7 @@
                                      {% if current_user.is_superuser or current_user.is_admin %}
                                      <li><hr class="dropdown-divider"></li>
                                      <li><a class="dropdown-item" href="{{ url_for('admin.backup_management') }}">Database Backups</a></li>
+                                     <li><a class="dropdown-item" href="{{ url_for('admin.view_system_logs') }}">View System Logs</a></li>
                                      {% endif %}
                                 </ul>
                             </li>

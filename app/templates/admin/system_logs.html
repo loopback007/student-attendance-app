@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Admin Panel{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .log-viewer {
+        background-color: #282c34; /* Dark background for logs */
+        color: #abb2bf; /* Light text for dark background */
+        padding: 15px;
+        border-radius: 5px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.85em;
+        white-space: pre-wrap; /* Preserve whitespace and wrap lines */
+        word-wrap: break-word; /* Break long words */
+        max-height: 600px; /* Limit height and make scrollable */
+        overflow-y: auto;
+        border: 1px solid #3e4451;
+    }
+    .log-section h4 {
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+    .download-links a {
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-9">
+            <h2>{{ title }}</h2>
+            <p class="text-muted">View recent application log entries. Note: For full logs or older entries, server access might be required.</p>
+        </div>
+        <div class="col-md-3 text-md-end">
+            <a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Admin Dashboard
+            </a>
+        </div>
+    </div>
+
+    {# Flash messages handled by base.html #}
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Log Viewer</h5>
+        </div>
+        <div class="card-body">
+            {% if log_content %}
+                {% if log_content.app_log %}
+                <div class="log-section">
+                    <h4>Application Log (Recent Entries) 
+                        <small class="download-links">
+                            <a href="{{ url_for('admin.download_log_file', log_type='app') }}" class="btn btn-sm btn-outline-info float-end">
+                                <i class="fas fa-download"></i> Download App Log
+                            </a>
+                        </small>
+                    </h4>
+                    <pre class="log-viewer"><code>{{ log_content.app_log }}</code></pre>
+                </div>
+                {% endif %}
+
+                {% if log_content.gunicorn_error_log %} {# Example if you add Gunicorn error log viewing #}
+                <div class="log-section">
+                     <h4>Gunicorn Error Log (Recent Entries)
+                        <small class="download-links">
+                            <a href="{{ url_for('admin.download_log_file', log_type='gunicorn_error') }}" class="btn btn-sm btn-outline-info float-end">
+                                <i class="fas fa-download"></i> Download Gunicorn Error Log
+                            </a>
+                        </small>
+                    </h4>
+                    <pre class="log-viewer"><code>{{ log_content.gunicorn_error_log }}</code></pre>
+                </div>
+                {% endif %}
+            {% else %}
+                <p class="text-muted">No log content to display or logs are not configured.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
