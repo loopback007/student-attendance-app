@@ -117,6 +117,8 @@
                                     <li><a class="dropdown-item" href="{{ url_for('admin.list_teachers') }}">Manage Teachers</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('admin.list_students') }}">Manage Students</a></li>
                                      <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin.list_holidays') }}">Manage Holidays</a></li>
+                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ url_for('admin.import_students_csv') }}">Import Students</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('admin.import_classes_csv') }}">Import Classes</a></li>
                                      {% if current_user.is_superuser or current_user.is_admin %}

@@ -5,6 +5,7 @@ from wtforms import StringField, TextAreaField, PasswordField, BooleanField, Sub
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError, Optional
 from wtforms_sqlalchemy.fields import QuerySelectField, QuerySelectMultipleField 
 from app.models import Subject, User, Student, UserRole, SubjectClass # Import UserRole
+from wtforms.fields import DateField
 
 # --- Helper functions (get_all_subjects, get_all_teachers, get_students_not_in_class - Omitted for brevity) ---
 def get_all_subjects():
@@ -177,3 +178,24 @@ class UserAdminForm(FlaskForm):
         except ValueError:
             raise ValidationError("Invalid role selected.")
 
+
+# Add the new HolidayForm:
+class HolidayForm(FlaskForm):
+    name = StringField('Holiday Name',
+                       validators=[DataRequired(message="Please enter the name of the holiday."),
+                                   Length(min=3, max=100)])
+    date = DateField('Date',
+                     format='%Y-%m-%d', # Ensures date is processed correctly
+                     validators=[DataRequired(message="Please select a date.")])
+    type = SelectField('Type of Holiday/Event',
+                       choices=[
+                           ('Public Holiday', 'Public Holiday'),
+                           ('School Holiday', 'School Holiday'),
+                           ('School Event', 'School Event'),
+                           ('Staff Day', 'Staff Day'),
+                           ('Other', 'Other')
+                       ],
+                       validators=[DataRequired(message="Please select the type.")])
+    description = TextAreaField('Description (Optional)',
+                                validators=[Optional(), Length(max=500)])
+    submit = SubmitField('Save Holiday')

@@ -118,6 +118,21 @@
     {% endif %}
 </form>
 
+{% if holiday_info %}
+<div class="alert alert-info my-3" role="alert"> {# Added my-3 for margin #}
+    <h5 class="alert-heading"><i class="fas fa-calendar-check"></i> Holiday Notice!</h5>
+    <p>
+        The selected date, <strong>{{ selected_date_for_display.strftime('%A, %B %d, %Y') }}</strong>, is
+        <strong>{{ holiday_info.name }}</strong> (Type: {{ holiday_info.type }}).
+    </p>
+    {% if holiday_info.description %}
+        <hr>
+        <p class="mb-0"><small>Description: {{ holiday_info.description }}</small></p>
+    {% endif %}
+    <p class="mt-2 mb-0"><small>You can mark attendance as "Public Holiday" or "School Holiday" if applicable.</small></p>
+</div>
+{% endif %}
+
 {% if enrolled_students_for_template %}
 <div class="card shadow-sm"> {# Added card wrapper for the table and submit button #}
     <div class="card-body p-0"> {# p-0 to make table flush with card edges #}

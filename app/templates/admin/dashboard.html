@@ -133,8 +133,8 @@
         <div class="section">
             <h4>System & Data</h4>
             <ul>
-                <li><a href="#">Import Data (Students/Classes)</a></li> 
-                <li><a href="#">Backup System</a></li> 
+                <li><a href="{{ url_for('admin.import_students_csv') }}">Import Students (CSV)</a></li>
+                <li><a href="{{ url_for('admin.import_classes_csv') }}">Import Classes (CSV)</a></li>
                 <li><a href="#">View System Logs</a></li> 
                 <li><a href="{{ url_for('admin.backup_management') }}">Database Backup</a></li>
             </ul>

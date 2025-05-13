@@ -3,7 +3,8 @@ from flask_wtf import FlaskForm
 from wtforms import DateField, SelectField, StringField, SubmitField, HiddenField
 from wtforms.fields import FieldList, FormField # For repeating sub-forms
 from wtforms.validators import DataRequired, Optional, Length # IMPORTED Length
-from app.models import AttendanceStatus # Enum for attendance choices
+#from app.models import AttendanceStatus # Enum for attendance choices
+from app.models import ATTENDANCE_STATUS_CHOICES # IMPORT THIS
 from datetime import date
 
 class StudentAttendanceEntryForm(FlaskForm):
@@ -14,7 +15,7 @@ class StudentAttendanceEntryForm(FlaskForm):
     student_id = HiddenField('Student ID', validators=[DataRequired()])
     # student_name field is for display only in the template, not a real form field to submit
     status = SelectField('Status', 
-                         choices=AttendanceStatus.get_choices(), # Use choices from Enum
+                         choices=ATTENDANCE_STATUS_CHOICES, # USE THE NEW LIST
                          validators=[DataRequired(message="Please select a status.")],
                          coerce=str) # Coerce to string as Enum values are strings
     remarks = StringField('Remarks', validators=[Optional(), Length(max=200)]) # Length validator used here

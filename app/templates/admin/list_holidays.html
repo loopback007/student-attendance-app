@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_pagination with context %} {# Assumes you have _form_macros.html with render_pagination #}
+
+{% block title %}Manage Holidays - Admin Panel{% endblock %}
+
+{% block head_extensions %}
+<style>
+    .action-buttons .btn, .action-buttons form .btn { /* Target buttons inside forms too */
+        margin-right: 5px; /* Space between buttons */
+        margin-bottom: 5px; /* Space for wrapping buttons */
+    }
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .card-header h5 {
+        margin-bottom: 0; /* Align with Bootstrap's default card-header styling */
+    }
+    .icon-text .fas, .icon-text .far, .icon-text .fab { /* Example for Font Awesome icons */
+        margin-right: 0.3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-8"> {# Adjusted column for better responsiveness #}
+            <h2>Manage Holidays & School Events</h2>
+            <p class="text-muted">Configure public holidays, school-specific holidays, and other important dates.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-2 mt-md-0"> {# Adjusted for button alignment #}
+            <a href="{{ url_for('admin.add_holiday') }}" class="btn btn-success icon-text">
+                <i class="fas fa-plus"></i> Add New
+            </a>
+        </div>
+    </div>
+
+    {# Flash messages are handled by base.html from your provided file #}
+
+    {% if holidays and holidays.items %}
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5>Configured Holidays & Events</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th style="min-width: 180px;">Actions</th> {# Ensure enough width for buttons #}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for holiday in holidays.items %}
+                        <tr>
+                            <td>{{ holiday.name }}</td>
+                            <td>{{ holiday.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ holiday.date.strftime('%A') }}</td>
+                            <td>{{ holiday.type }}</td>
+                            <td>{{ holiday.description | truncate(80) if holiday.description else '-' }}</td>
+                            <td class="action-buttons">
+                                <a href="{{ url_for('admin.edit_holiday', holiday_id=holiday.id) }}" class="btn btn-sm btn-outline-primary icon-text" title="Edit">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger icon-text" data-bs-toggle="modal" data-bs-target="#deleteHolidayModal-{{ holiday.id }}" title="Delete">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        <div class="modal fade" id="deleteHolidayModal-{{ holiday.id }}" tabindex="-1" aria-labelledby="deleteHolidayModalLabel-{{ holiday.id }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteHolidayModalLabel-{{ holiday.id }}">Confirm Deletion</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>Are you sure you want to delete the holiday/event: <br>
+                                            <strong>{{ holiday.name }} ({{ holiday.date.strftime('%Y-%m-%d') }})</strong>?</p>
+                                        <p class="text-danger"><small>This action cannot be undone.</small></p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <form action="{{ url_for('admin.delete_holiday', holiday_id=holiday.id) }}" method="POST" style="display: inline;">
+                                            {# THIS IS THE CRITICAL FIX FOR CSRF #}
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger icon-text">
+                                                <i class="fas fa-trash-alt"></i> Delete Holiday
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if holidays.pages and holidays.pages > 1 %} {# Check holidays.pages exists #}
+        <div class="card-footer text-center">
+            {{ render_pagination(holidays, 'admin.list_holidays') }}
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="alert alert-info mt-3" role="alert">
+        No holidays or special events have been configured yet.
+        <a href="{{ url_for('admin.add_holiday') }}" class="alert-link icon-text"><i class="fas fa-plus"></i> Add the first one!</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

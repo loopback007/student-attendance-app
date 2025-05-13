@@ -71,6 +71,40 @@
     {# Optional: Add a button or link if teachers can initiate something from here #}
 </div>
 
+{# --- Display Upcoming Holidays --- #}
+{% if upcoming_holidays %}
+    <div class="mb-4"> {# Margin bottom for spacing #}
+        <h4><i class="fas fa-calendar-alt"></i> Upcoming Holidays & Events</h4> {# Assumes Font Awesome #}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3"> {# Responsive grid #}
+            {% for holiday in upcoming_holidays %}
+            <div class="col">
+                <div class="holiday-card">
+                    <h5>{{ holiday.name }}</h5>
+                    <p class="holiday-date">
+                        {{ holiday.date.strftime('%A, %B %d, %Y') }}
+                    </p>
+                    <p class="holiday-type mb-0">{{ holiday.type }}</p>
+                    {% if holiday.description %}
+                        <small class="text-muted d-block mt-1">{{ holiday.description }}</small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {# Link to view all holidays (we'll create this page later) #}
+        <div class="mt-3 text-end">
+            <a href="{{ url_for('teacher.view_all_holidays') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-calendar-alt"></i> View Full Holiday Calendar
+            </a>
+        </div>
+    </div>
+{% elif current_user.is_teacher %} {# Only show 'no holidays' if specifically a teacher view with this feature #}
+    <div class="alert alert-light" role="alert">
+        No upcoming holidays or events found in the near future.
+    </div>
+{% endif %}
+{# --- End of Upcoming Holidays --- #}
+
 {% if classes %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4"> {# Responsive card grid #}
     {% for class_item in classes %}

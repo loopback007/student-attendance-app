@@ -1,19 +1,23 @@
 # app/teacher/routes.py
-from flask import render_template, request, redirect, url_for, flash, abort
+from flask import render_template, request, redirect, url_for, flash, abort, current_app
 from flask_login import login_required, current_user
-from wtforms.validators import Length 
 from . import teacher 
 from app.decorators import teacher_required 
-from app.models import User, SubjectClass, UserRole, Student, Attendance, AttendanceStatus 
+# MODIFIED: Import Holiday model
+from app.models import User, SubjectClass, Student, Attendance, Holiday 
 from app.teacher.forms import MarkAttendanceForm, StudentAttendanceEntryForm 
 from app import db
-from datetime import date, datetime, timedelta
-from collections import defaultdict # For summarizing attendance
+# MODIFIED: Ensure 'date' and 'timedelta' are available from datetime
+from datetime import date, datetime, timedelta 
+from collections import defaultdict
 
 @teacher.route('/')
 @login_required
 @teacher_required
 def teacher_dashboard():
+    # This route currently redirects to my_classes.
+    # If you want a dedicated dashboard page, you'd render a template here.
+    # For now, we'll add holiday info to the 'my_classes' view.
     return redirect(url_for('teacher.my_classes'))
 
 @teacher.route('/my-classes')
@@ -24,11 +28,65 @@ def my_classes():
         db.joinedload(SubjectClass.subject_taught)
     ).order_by(SubjectClass.name).all()
     
+    # --- ADDED LOGIC TO FETCH UPCOMING HOLIDAYS ---
+    today = date.today()
+    # Fetch holidays from today for the next (e.g.) 60 days, limit to a few
+    # Using PyDate.today() for consistency if you aliased `date` in models.py
+    # but here `date.today()` is fine as `date` is directly from `datetime`.
+    upcoming_holidays_query = Holiday.query.filter(Holiday.date >= today).order_by(Holiday.date.asc())
+    
+    # Optional: Limit the number of holidays shown, e.g., next 3-5
+    upcoming_holidays = upcoming_holidays_query.limit(5).all() 
+    
+    # Optional: You might want to fetch for a specific period, e.g., next 60 days
+    # end_date_for_holidays = today + timedelta(days=60)
+    # upcoming_holidays_strict_period = Holiday.query.filter(
+    # Holiday.date >= today,
+    # Holiday.date <= end_date_for_holidays
+    # ).order_by(Holiday.date.asc()).all()
+    # --- END OF ADDED LOGIC ---
+    
     return render_template('teacher/my_classes.html', 
                            classes=assigned_classes, 
-                           title="My Classes")
+                           upcoming_holidays=upcoming_holidays, # Pass holidays to template
+                           title="My Classes & Dashboard") # Title can reflect it's a dashboard
+                           
+@teacher.route('/holidays')
+@login_required
+@teacher_required # Or a more general permission decorator if needed
+def view_all_holidays():
+    # Get the current year, or allow year selection via query parameter
+    year = request.args.get('year', default=date.today().year, type=int)
+    
+    # Fetch holidays for the selected year, ordered by date
+    holidays_for_year = Holiday.query.filter(
+        db.extract('year', Holiday.date) == year
+    ).order_by(Holiday.date.asc()).all()
+    
+    # Get a list of years for which holidays are configured, for a year selector dropdown
+    available_years_query = db.session.query(db.extract('year', Holiday.date).label('year')).distinct().order_by(db.desc('year'))
+    available_years = [y.year for y in available_years_query.all()]
 
-# Helper function to parse day of week from schedule string (already exists from previous step)
+    if not available_years and not holidays_for_year : # If no holidays at all in DB
+        available_years = [date.today().year] # Default to current year if no holidays exist
+    elif year not in available_years and available_years: # If selected year has no holidays but other years do
+         if date.today().year in available_years: # Try current year if available
+            year = date.today().year
+         else: # Else just pick the latest available year
+            year = available_years[0] if available_years else date.today().year
+         # Re-fetch for the adjusted year
+         holidays_for_year = Holiday.query.filter(
+            db.extract('year', Holiday.date) == year
+         ).order_by(Holiday.date.asc()).all()
+
+
+    return render_template('teacher/all_holidays.html', 
+                           holidays=holidays_for_year, 
+                           selected_year=year,
+                           available_years=available_years,
+                           title=f"School Holidays & Events for {year}")
+
+# Helper function to parse day of week from schedule string
 def parse_scheduled_day(schedule_details_str):
     if not schedule_details_str or len(schedule_details_str) < 3:
         return None
@@ -41,7 +99,7 @@ def parse_scheduled_day(schedule_details_str):
 @teacher.route('/class/<int:class_id>/attendance/mark', methods=['GET', 'POST'])
 @login_required
 @teacher_required
-def mark_attendance(class_id):
+def mark_attendance(class_id): # class_id here is subject_class.id
     subject_class = SubjectClass.query.options(
         db.joinedload(SubjectClass.subject_taught),
         db.joinedload(SubjectClass.teacher_user)
@@ -55,9 +113,9 @@ def mark_attendance(class_id):
     today = date.today()
     scheduled_weekday = parse_scheduled_day(subject_class.schedule_details)
 
-    if scheduled_weekday is None:
-        default_class_date_for_week = today
-    else:
+    # Determine default/selected date for attendance
+    default_class_date_for_week = today
+    if scheduled_weekday is not None:
         days_difference = scheduled_weekday - today.weekday()
         default_class_date_for_week = today + timedelta(days=days_difference)
 
@@ -66,40 +124,57 @@ def mark_attendance(class_id):
         try:
             selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
             if scheduled_weekday is not None and selected_date.weekday() != scheduled_weekday:
-                flash(f"Attendance for this class is on {subject_class.schedule_details[:3]}. Selected date is not a valid class day. Showing default date instead.", "warning")
+                flash(f"Attendance for this class is typically on {subject_class.schedule_details[:3]}. Selected date is not a scheduled class day. Showing default date instead.", "warning")
                 selected_date = default_class_date_for_week
         except ValueError:
-            flash("Invalid date format from picker. Showing default date.", "warning")
+            flash("Invalid date format. Showing default date.", "warning")
             selected_date = default_class_date_for_week
     else:
         if request.method == 'POST' and form.attendance_date.data:
              selected_date = form.attendance_date.data
         else:
             selected_date = default_class_date_for_week
-    form.attendance_date.data = selected_date
+    
+    form.attendance_date.data = selected_date # Set form's date for display
+    # --- ADDED/UPDATED: Check if selected_date is a holiday ---
+    holiday_on_selected_date = None
+    if selected_date: # Ensure selected_date is valid before querying
+        holiday_on_selected_date = Holiday.query.filter_by(date=selected_date).first()
 
     if request.method == 'POST' and form.validate_on_submit():
-        if scheduled_weekday is not None and form.attendance_date.data.weekday() != scheduled_weekday:
+        # Ensure selected date for submission matches the one used for form population if it changed
+        selected_date = form.attendance_date.data
+
+        if scheduled_weekday is not None and selected_date.weekday() != scheduled_weekday:
             flash(f"Submission error: Attendance for this class should be on a {subject_class.schedule_details[:3]}. Please select a valid date.", "danger")
         else:
             try:
                 for student_entry_data in form.students_attendance.data:
                     student_id = student_entry_data['student_id']
-                    status_val = student_entry_data['status']
+                    status_val = student_entry_data['status'] # This is already a string e.g., 'present'
                     remarks = student_entry_data['remarks']
+                    
+                    # Use new field names: subject_class_id and date
                     attendance_record = Attendance.query.filter_by(
-                        student_id=student_id, class_id=class_id, attendance_date=selected_date
+                        student_id=student_id, 
+                        subject_class_id=class_id, # Use class_id (which is subject_class.id)
+                        date=selected_date
                     ).first()
+                    
                     if attendance_record:
-                        attendance_record.status = AttendanceStatus(status_val) 
+                        attendance_record.status = status_val # Assign string directly
                         attendance_record.remarks = remarks
                         attendance_record.recorded_by_user_id = current_user.id
-                        attendance_record.recorded_at = datetime.utcnow()
+                        # 'updated_at' will be auto-updated by the model
                     else:
                         attendance_record = Attendance(
-                            student_id=student_id, class_id=class_id,
-                            attendance_date=selected_date, status=AttendanceStatus(status_val),
-                            remarks=remarks, recorded_by_user_id=current_user.id
+                            student_id=student_id, 
+                            subject_class_id=class_id, # Use class_id
+                            date=selected_date, 
+                            status=status_val, # Assign string directly
+                            remarks=remarks, 
+                            recorded_by_user_id=current_user.id
+                            # 'created_at' will be set by default by the model
                         )
                         db.session.add(attendance_record)
                 db.session.commit()
@@ -108,21 +183,30 @@ def mark_attendance(class_id):
             except Exception as e:
                 db.session.rollback()
                 flash(f'Error saving attendance: {str(e)}', 'danger')
+                current_app.logger.error(f"Error in mark_attendance POST: {e}", exc_info=True) # Added logger
 
+    # Populate form for GET request or if POST validation failed
+    # Clear previous entries if any (important for FieldList)
     while len(form.students_attendance) > 0:
         form.students_attendance.pop_entry()
+
     enrolled_students = subject_class.students_enrolled.filter(Student.is_active==True).order_by(Student.last_name, Student.first_name).all()
     for student in enrolled_students:
+        # Use new field names: subject_class_id and date
         existing_attendance = Attendance.query.filter_by(
-            student_id=student.id, class_id=class_id, attendance_date=selected_date
+            student_id=student.id, 
+            subject_class_id=class_id, # Use class_id
+            date=selected_date
         ).first()
-        student_form_entry = StudentAttendanceEntryForm()
+        
+        student_form_entry = StudentAttendanceEntryForm() # This form's status field expects a string
         student_form_entry.student_id = student.id
+        
         if existing_attendance:
-            student_form_entry.status = existing_attendance.status.value 
+            student_form_entry.status = existing_attendance.status # status is already a string
             student_form_entry.remarks = existing_attendance.remarks
         else:
-            student_form_entry.status = AttendanceStatus.PRESENT.value 
+            student_form_entry.status = 'present' # Default to string 'present'
         form.students_attendance.append_entry(student_form_entry)
         
     return render_template('teacher/mark_attendance.html', 
@@ -130,73 +214,62 @@ def mark_attendance(class_id):
                            subject_class=subject_class, 
                            title=f"Mark Attendance for {subject_class.name}",
                            selected_date_for_display=selected_date, 
-                           enrolled_students_for_template=enrolled_students,
-                           scheduled_weekday_num=scheduled_weekday)
+                           enrolled_students_for_template=enrolled_students, # Pass students for display in template
+                           scheduled_weekday_num=scheduled_weekday,
+                           holiday_info=holiday_on_selected_date) # Pass holiday_info
 
-# --- New Class Attendance Report Route ---
+
 @teacher.route('/class/<int:class_id>/attendance-report')
 @login_required
-@teacher_required # Or a more general permission if admins/staff can also view
-def class_attendance_report(class_id):
-    """
-    Displays an attendance report/summary for a specific class.
-    """
+@teacher_required
+def class_attendance_report(class_id): # class_id here is subject_class.id
     subject_class = SubjectClass.query.options(
         db.joinedload(SubjectClass.subject_taught),
-        db.joinedload(SubjectClass.teacher_user) # Eager load teacher
+        db.joinedload(SubjectClass.teacher_user)
     ).get_or_404(class_id)
 
-    # Authorization: Ensure teacher is assigned or user is admin/staff
-    # For now, sticking to teacher_required. Modify if other roles need access.
     if not current_user.is_admin and not current_user.is_staff and subject_class.teacher_user_id != current_user.id :
         flash("You are not authorized to view the report for this class.", "danger")
         return redirect(url_for('teacher.my_classes'))
 
-    # Get all enrolled students for this class
     enrolled_students = subject_class.students_enrolled.filter(Student.is_active==True).order_by(Student.last_name, Student.first_name).all()
+    
+    # Use new field name: subject_class_id
+    all_attendance_records = Attendance.query.filter_by(subject_class_id=class_id).all()
 
-    # Get all attendance records for this class
-    all_attendance_records = Attendance.query.filter_by(class_id=class_id).all()
-
-    # Process attendance data to create a summary per student
     student_summary_data = {}
     for student in enrolled_students:
         student_summary_data[student.id] = {
             'student_obj': student,
-            'total_present': 0,
-            'total_absent': 0,
-            'total_late': 0,
-            'total_excused': 0,
-            'total_sessions_recorded': 0 # Count of days where attendance was taken for this student
+            'total_present': 0, 'total_absent': 0, 'total_late': 0, 'total_excused': 0,
+            'total_public_holiday': 0, 'total_school_holiday': 0, # For new statuses
+            'total_sessions_recorded': 0
         }
 
-    # Tally up attendance statuses for each student
-    # This assumes attendance is recorded for each student for each class session date.
-    # A more advanced report might consider the total number of unique class session dates.
-    unique_class_session_dates = db.session.query(Attendance.attendance_date).filter_by(class_id=class_id).distinct().count()
-
+    # Use new field name: date
+    unique_class_session_dates = db.session.query(Attendance.date).filter_by(subject_class_id=class_id).distinct().count()
 
     for record in all_attendance_records:
         if record.student_id in student_summary_data:
             summary = student_summary_data[record.student_id]
-            summary['total_sessions_recorded'] += 1 # Increment if a record exists for this student on a day
-            if record.status == AttendanceStatus.PRESENT:
+            summary['total_sessions_recorded'] += 1
+            
+            # Use string comparisons for status
+            if record.status == 'present':
                 summary['total_present'] += 1
-            elif record.status == AttendanceStatus.ABSENT:
+            elif record.status == 'absent':
                 summary['total_absent'] += 1
-            elif record.status == AttendanceStatus.LATE:
+            elif record.status == 'late':
                 summary['total_late'] += 1
-            elif record.status == AttendanceStatus.EXCUSED:
+            elif record.status == 'excused':
                 summary['total_excused'] += 1
+            elif record.status == 'public_holiday': # Handle new status
+                summary['total_public_holiday'] += 1
+            elif record.status == 'school_holiday': # Handle new status
+                summary['total_school_holiday'] += 1
     
-    # For a more accurate percentage, we might need to know total possible sessions.
-    # For now, 'total_sessions_recorded' is specific to when this student had a record.
-    # If a student enrolls late, they won't have records for earlier dates.
-    # `unique_class_session_dates` gives a count of distinct dates for which *any* attendance was recorded for this class.
-
     return render_template('teacher/class_attendance_report.html',
                            subject_class=subject_class,
-                           student_summary_data=student_summary_data.values(), # Pass as a list of dicts
+                           student_summary_data=student_summary_data.values(),
                            unique_class_session_dates=unique_class_session_dates,
                            title=f"Attendance Report for {subject_class.name}")
-
