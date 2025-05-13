@@ -24,26 +24,35 @@
     .timetable {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed; /* Important for equal column widths */
+        table-layout: fixed; 
     }
     .timetable th, .timetable td {
         border: 1px solid #dee2e6;
         padding: 0.5rem;
         text-align: center;
-        vertical-align: top; /* Align content to the top of the cell */
-        height: 80px; /* Minimum height for a timeslot cell */
+        vertical-align: top; 
     }
-    .timetable th.time-slot-header { /* Header for the time column */
-        width: 100px; /* Fixed width for time column */
+    .timetable td {
+         min-height: 70px; 
+         height: auto;
+    }
+    .timetable th.time-slot-header { 
+        width: 100px; 
         font-size: 0.8rem;
         font-weight: normal;
         background-color: #f8f9fa;
     }
-    .timetable th.day-header { /* Headers for Monday, Tuesday, etc. */
-        background-color: #f0f0f0;
+    .timetable th.day-header { 
+        background-color: #e9ecef;
         font-size: 0.9rem;
+        position: relative; 
     }
-    .timetable td.time-label { /* Cells showing the time slot label */
+    .timetable th.day-header .date-number {
+        display: block;
+        font-size: 0.8em;
+        color: #6c757d;
+    }
+    .timetable td.time-label { 
         font-weight: bold;
         font-size: 0.8rem;
         background-color: #f8f9fa;
@@ -51,37 +60,95 @@
         padding-right: 10px;
     }
     .timetable-entry {
+        display: block; 
         background-color: var(--bs-primary-bg-subtle);
         border: 1px solid var(--bs-primary-border-subtle);
-        color: var(--bs-primary); /* Ensure text is visible against subtle background */
+        color: var(--bs-primary);
         padding: 5px;
         margin-bottom: 5px;
         border-radius: 3px;
-        font-size: 0.75rem; /* Smaller font for entries */
+        font-size: 0.75rem;
         text-align: left;
-        overflow: hidden; /* Prevent long text from breaking layout */
+        overflow: hidden;
         position: relative; 
+        text-decoration: none; 
+        cursor: pointer;
+        min-height: 60px; 
+        display: flex; 
+        flex-direction: column;
+        justify-content: center;
+    }
+    .timetable-entry:hover {
+        background-color: var(--bs-primary-border-subtle); 
+        border-color: var(--bs-primary);
     }
     .timetable-entry strong {
         display: block;
         font-size: 0.9em; 
-        color: var(--bs-primary); /* Ensure class name is prominent */
+        color: var(--bs-primary); 
     }
     .timetable-entry .subject-name {
         display: block;
         font-size: 0.85em;
-        color: #495057; /* Slightly darker for better readability */
+        color: #495057; 
     }
     .timetable-entry .teacher-name,
     .timetable-entry .location-name,
     .timetable-entry .time-range {
         display: block;
         font-size: 0.8em; 
-        color: #6c757d; /* Muted color for secondary details */
+        color: #6c757d; 
     }
     .table-responsive-wrapper {
         overflow-x: auto; 
     }
+    .timetable-entry.non-clickable {
+        cursor: default;
+        background-color: #e9ecef; 
+        border-color: #ced4da;
+        color: #495057;
+    }
+     .timetable-entry.non-clickable:hover {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+    .timetable-entry.non-clickable strong {
+        color: #343a40;
+    }
+    .holiday-column-header {
+        background-color: #fff3cd !important; 
+        color: #856404;
+    }
+    .holiday-column-header .holiday-name-overlay {
+        font-size: 0.7em;
+        font-weight: bold;
+        display: block;
+        margin-top: 2px;
+    }
+    .holiday-cell {
+        background-color: #fff9e6 !important; 
+    }
+    .holiday-cell .timetable-entry { 
+        opacity: 0.7; 
+    }
+
+    /* --- Styles for Current Day/Time Highlighting --- */
+    .current-day-header {
+        background-color: #d1ecf1 !important; /* Light blue for current day header */
+        border: 2px solid #0c5460 !important;
+    }
+    .current-time-slot-cell {
+        background-color: #cfe2ff !important; /* Lighter blue for current time slot cell */
+        /* border: 1px dashed #0d6efd; */
+    }
+    .current-time-slot-cell.holiday-cell { /* If current slot is also a holiday */
+        background-color: #ffeeba !important; /* Mix of holiday and current time, e.g. light orange */
+    }
+    .current-time-label {
+        font-weight: bolder;
+        color: var(--bs-primary); /* Theme color */
+    }
+
 </style>
 {% endblock %}
 
@@ -107,49 +174,114 @@
         </div>
         <div class="card-body p-0">
             <div class="table-responsive-wrapper">
+                {% set ns = namespace(covered_until={}) %}
+                {% for day_name_init in days_of_week %}
+                    {% set _ = ns.covered_until.update({day_name_init: 0}) %}
+                {% endfor %}
+
                 <table class="timetable">
                     <thead>
                         <tr>
                             <th class="time-slot-header">Time</th>
-                            {% for day in days_of_week %}
-                                <th class="day-header">{{ day }}</th>
+                            {% for day_idx in range(days_of_week|length) %}
+                                {% set current_day_name_header = days_of_week[day_idx] %}
+                                {% set actual_cell_date_header = start_of_week_date_obj + timedelta_module(days=day_idx) %} {# Use timedelta_module #}
+                                {% set is_holiday_column_header = actual_cell_date_header in holiday_dates_in_week %}
+                                {% set is_current_day_header = actual_cell_date_header == today_date %}
+                                <th class="day-header 
+                                    {% if is_holiday_column_header %}holiday-column-header{% endif %}
+                                    {% if is_current_day_header %}current-day-header{% endif %}">
+                                    {{ current_day_name_header }}
+                                    <span class="date-number">{{ actual_cell_date_header.strftime('%d %b') }}</span>
+                                    {% if is_holiday_column_header and holiday_details_map[actual_cell_date_header] %}
+                                        <span class="holiday-name-overlay">{{ holiday_details_map[actual_cell_date_header].name | truncate(20) }}</span>
+                                    {% endif %}
+                                </th>
                             {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
-                        {% for slot in time_slots %}
+                        {% for slot_idx in range(time_slots|length) %}
+                            {% set slot_str = time_slots[slot_idx] %} {# slot is "HH:MM" string #}
+                            {% set slot_hour = datetime_module.strptime(slot_str, '%H:%M').hour %} {# Get hour from slot string #}
                             <tr>
-                                <td class="time-label">{{ slot }} - {{ (datetime.strptime(slot, '%H:%M') + timedelta(hours=1)).strftime('%H:%M') }}</td>
-                                {% for day in days_of_week %}
-                                    <td>
-                                        {% if timetable_data[day][slot] %}
-                                            {% for entry in timetable_data[day][slot] %}
-                                                <div class="timetable-entry" title="{{ entry.subject_name }} with {{ entry.teacher_name }} from {{ entry.start_time_str }} to {{ entry.end_time_str }} {% if entry.location and entry.location != 'N/A' %} at {{ entry.location }}{% endif %}">
-                                                    <strong>{{ entry.class_name }}</strong>
-                                                    <span class="subject-name">{{ entry.subject_name }}</span>
-                                                    {% if entry.teacher_name != "N/A" %}
-                                                        <span class="teacher-name">Teacher: {{ entry.teacher_name }}</span>
-                                                    {% endif %}
-                                                    {% if entry.location and entry.location != "N/A" %}
-                                                        <span class="location-name">Loc: {{ entry.location }}</span>
-                                                    {% endif %}
-                                                    <span class="time-range">{{ entry.start_time_str }} - {{ entry.end_time_str }}</span>
-                                                </div>
+                                <td class="time-label {% if slot_hour == current_hour %}current-time-label{% endif %}">
+                                    {{ slot_str }} - {{ (datetime_module.strptime(slot_str, '%H:%M') + timedelta_module(hours=1)).strftime('%H:%M') }} {# Use datetime_module, timedelta_module #}
+                                </td>
+                                
+                                {% for day_idx in range(days_of_week|length) %}
+                                    {% set current_day_name = days_of_week[day_idx] %}
+                                    
+                                    {% if slot_idx < ns.covered_until[current_day_name] %}
+                                        {# This cell is covered by a rowspan from a previous slot, do not render it #}
+                                    {% else %}
+                                        {% set actual_cell_date = start_of_week_date_obj + timedelta_module(days=day_idx) %} {# Use timedelta_module #}
+                                        {% set actual_cell_date_str = actual_cell_date.strftime('%Y-%m-%d') %}
+                                        {% set is_holiday_cell = actual_cell_date in holiday_dates_in_week %}
+                                        {% set is_current_day_cell = actual_cell_date == today_date %}
+                                        {% set is_current_slot_cell = slot_hour == current_hour %}
+                                        
+                                        {% set entries_for_slot = timetable_data[current_day_name][slot_str] %}
+                                        
+                                        {% set td_rowspan = 1 %} 
+                                        {% set max_entry_rowspan_for_skipping = 1 %} 
+
+                                        {% if entries_for_slot %}
+                                            {% for entry in entries_for_slot %}
+                                                {% set max_entry_rowspan_for_skipping = [max_entry_rowspan_for_skipping, entry.rowspan|int if entry.rowspan else 1]|max %}
                                             {% endfor %}
-                                        {% else %}
-                                            &nbsp; {# Non-breaking space for empty cells #}
+                                            {% if entries_for_slot|length == 1 %}
+                                                {% set td_rowspan = entries_for_slot[0].rowspan|int if entries_for_slot[0].rowspan else 1 %}
+                                            {% endif %}
                                         {% endif %}
-                                    </td>
-                                {% endfor %}
+
+                                        <td class="
+                                            {% if is_holiday_cell %}holiday-cell{% endif %}
+                                            {% if is_current_day_cell and is_current_slot_cell %}current-time-slot-cell{% endif %}"
+                                            {% if td_rowspan > 1 %}rowspan="{{ td_rowspan }}"{% endif %}>
+                                            
+                                            {% if entries_for_slot %}
+                                                {% for entry in entries_for_slot %}
+                                                    {% set can_mark_attendance = current_user.is_authenticated and (current_user.is_teacher or current_user.is_admin or current_user.is_staff) %}
+                                                    
+                                                    {% if can_mark_attendance and not is_holiday_cell %}
+                                                        <a href="{{ url_for('teacher.mark_attendance', class_id=entry.class_id, attendance_date=actual_cell_date_str) }}" class="timetable-entry" title="Mark attendance for {{ entry.class_name }} on {{ actual_cell_date.strftime('%b %d') }}">
+                                                    {% else %}
+                                                        <div class="timetable-entry {% if not can_mark_attendance or is_holiday_cell %}non-clickable{% endif %}" title="{{ entry.subject_name }} with {{ entry.teacher_name }} from {{ entry.start_time_str }} to {{ entry.end_time_str }} {% if entry.location and entry.location != 'N/A' %} at {{ entry.location }}{% endif %}">
+                                                    {% endif %}
+                                                        <strong>{{ entry.class_name }}</strong>
+                                                        <span class="subject-name">{{ entry.subject_name }}</span>
+                                                        {% if entry.teacher_name != "N/A" %}
+                                                            <span class="teacher-name">Teacher: {{ entry.teacher_name }}</span>
+                                                        {% endif %}
+                                                        {% if entry.location and entry.location != "N/A" %}
+                                                            <span class="location-name">Loc: {{ entry.location }}</span>
+                                                        {% endif %}
+                                                        <span class="time-range">{{ entry.start_time_str }} - {{ entry.end_time_str }}</span>
+                                                    {% if can_mark_attendance and not is_holiday_cell %}
+                                                        </a>
+                                                    {% else %}
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% elif is_holiday_cell %}
+                                                &nbsp; 
+                                            {% else %}
+                                                &nbsp; 
+                                            {% endif %}
+                                        </td>
+                                        {% set _ = ns.covered_until.update({current_day_name: slot_idx + max_entry_rowspan_for_skipping}) %}
+                                    {% endif %} 
+                                {% endfor %} 
                             </tr>
-                        {% endfor %}
+                        {% endfor %} 
                     </tbody>
                 </table>
             </div>
         </div>
          <div class="card-footer">
             <small class="text-muted">
-                Timetable shows classes based on their scheduled start times within each one-hour slot.
+                Click on a class to mark attendance (if permitted). Timetable shows classes based on their scheduled start times. Days highlighted in yellow are holidays.
             </small>
         </div>
     </div>

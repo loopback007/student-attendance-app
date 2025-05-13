@@ -17,6 +17,7 @@ services:
       - FLASK_CONFIG=production
       - FLASK_DEBUG=0
       - DOCKER_CONTAINER=true
+      - TZ=Asia/Kuala_Lumpur
       # - SECRET_KEY=your_very_strong_production_secret_key # IMPORTANT: Set this in a .env file or directly for production
       # - DATABASE_URL=sqlite:////app/data/app.db # Example if DB is in a specific volume-mounted 'data' folder
       # Our current config.py uses 'sqlite:///app.db' which will be /app/app.db in the container

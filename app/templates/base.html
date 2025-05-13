@@ -146,7 +146,7 @@
                                     <small class="text-white-50">({{ current_user.role.name.title() if current_user.role else 'N/A' }})</small>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" href="#">Profile (TODO)</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">My Profile</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
                                 </ul>

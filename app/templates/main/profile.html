@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{# Assuming you might have form macros, but will render fields explicitly for clarity #}
+{# {% from "_form_macros.html" import render_field_with_errors, render_submit_field with context %} #}
+
+{% block title %}{{ title }} - Attendance Tracker{% endblock %}
+
+{% block head_extensions %}
+{{ super() }}
+<style>
+    .profile-container {
+        max-width: 800px;
+        margin: auto;
+    }
+    .profile-card {
+        margin-bottom: 2rem;
+    }
+    .profile-card .card-header {
+        font-size: 1.2rem;
+        font-weight: 500;
+    }
+    .form-group { /* Fallback if not using a macro that adds mb-3 */
+        margin-bottom: 1rem;
+    }
+    /* Make readonly fields look slightly different */
+    input[readonly] {
+        background-color: #e9ecef; /* Bootstrap's disabled background color */
+        opacity: 1; /* Ensure text is readable */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 profile-container">
+    <div class="row mb-3 align-items-center">
+        <div class="col">
+            <h2>{{ title }}</h2>
+        </div>
+    </div>
+
+    {# Flash messages are handled by base.html #}
+
+    {# Card for Updating Profile Information #}
+    <div class="card shadow-sm profile-card">
+        <div class="card-header">
+            Update Profile Information
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.profile') }}" novalidate>
+                {{ profile_form.hidden_tag() }} {# Includes CSRF token for this form #}
+                
+                <div class="mb-3">
+                    {{ profile_form.username.label(class="form-label") }}
+                    {{ profile_form.username(class="form-control", readonly=True) }} {# Username is usually not changeable by user #}
+                    <small class="form-text text-muted">Username cannot be changed.</small>
+                </div>
+
+                <div class="mb-3">
+                    {{ profile_form.email.label(class="form-label") }}
+                    {{ profile_form.email(class="form-control" + (" is-invalid" if profile_form.email.errors else ""), placeholder="your.email@example.com") }}
+                    {% if profile_form.email.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in profile_form.email.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        {{ profile_form.first_name.label(class="form-label") }}
+                        {{ profile_form.first_name(class="form-control" + (" is-invalid" if profile_form.first_name.errors else ""), placeholder="Your First Name") }}
+                        {% if profile_form.first_name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in profile_form.first_name.errors %}<span>{{ error }}</span><br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        {{ profile_form.last_name.label(class="form-label") }}
+                        {{ profile_form.last_name(class="form-control" + (" is-invalid" if profile_form.last_name.errors else ""), placeholder="Your Last Name") }}
+                        {% if profile_form.last_name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in profile_form.last_name.errors %}<span>{{ error }}</span><br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    {{ profile_form.submit_profile(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Card for Changing Password #}
+    <div class="card shadow-sm profile-card">
+        <div class="card-header">
+            Change Password
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('main.profile') }}" novalidate>
+                {{ password_form.hidden_tag() }} {# Includes CSRF token for this form #}
+
+                <div class="mb-3">
+                    {{ password_form.current_password.label(class="form-label") }}
+                    {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else "")) }}
+                    {% if password_form.current_password.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in password_form.current_password.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ password_form.new_password.label(class="form-label") }}
+                    {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else "")) }}
+                    {% if password_form.new_password.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in password_form.new_password.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    {{ password_form.confirm_new_password.label(class="form-label") }}
+                    {{ password_form.confirm_new_password(class="form-control" + (" is-invalid" if password_form.confirm_new_password.errors else "")) }}
+                    {% if password_form.confirm_new_password.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in password_form.confirm_new_password.errors %}<span>{{ error }}</span><br>{% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    {{ password_form.submit_password(class="btn btn-warning") }} {# Different color for distinction #}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
