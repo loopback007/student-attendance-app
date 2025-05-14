@@ -7,18 +7,18 @@
     
     <link rel="icon" href="{{ url_for('static', filename='imageedit_2_3225657187.png') }}" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    {# Font Awesome for icons - ensure this is present if you use fas fa-* icons #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUA6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     
     <style>
-        /* Define the new primary theme color */
         :root {
-            --bs-primary: #781013; /* Your new theme color */
-            --bs-primary-rgb: 120, 16, 19; /* RGB version of your theme color (78, 10, 13) */
-            --bs-primary-bg-subtle: #fce8e8; /* A lighter shade for subtle backgrounds */
-            --bs-primary-border-subtle: #f3c4c5; /* A lighter shade for subtle borders */
-            --bs-link-color: #781013; /* Optional: Make links use the primary color */
-            --bs-link-hover-color: #500b0d; /* Optional: Darker shade for link hover */
+            --bs-primary: #781013; 
+            --bs-primary-rgb: 120, 16, 19; 
+            --bs-primary-bg-subtle: #fce8e8; 
+            --bs-primary-border-subtle: #f3c4c5; 
+            --bs-link-color: #781013; 
+            --bs-link-hover-color: #500b0d; 
         }
-
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             background-color: #f8f9fa; 
@@ -33,7 +33,7 @@
             padding-bottom: 20px;
         }
         footer {
-            background-color: #343a40; /* Keep footer dark or adjust as desired */
+            background-color: #343a40;
             color: white;
             padding: 1rem 0;
             text-align: center;
@@ -43,8 +43,6 @@
         .flashes .alert {
             margin-bottom: 1rem;
         }
-
-        /* Ensure Bootstrap primary color variables are overridden for components */
         .bg-primary {
             background-color: var(--bs-primary) !important;
         }
@@ -53,7 +51,7 @@
             border-color: var(--bs-primary);
         }
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-            background-color: #500b0d; /* Darker shade for hover/active */
+            background-color: #500b0d; 
             border-color: #500b0d;
         }
         .btn-outline-primary {
@@ -75,11 +73,14 @@
             color: #fff;
         }
         .navbar-dark .nav-link:hover, .navbar-dark .nav-link:focus {
-            color: #f8f9fa; /* Lighter color for nav link hover */
+            color: #f8f9fa; 
         }
-        .dropdown-item:active { /* Style active dropdown item */
+        .dropdown-item:active { 
              background-color: var(--bs-primary);
              color: #fff !important;
+        }
+        .navbar-brand {
+            font-size: 0.95rem; /* Slightly reduce brand font size if still too long */
         }
     </style>
     {% block head_extensions %}{% endblock %}
@@ -90,7 +91,7 @@
             <div class="container-fluid">
                 <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
                     <img src="{{ url_for('static', filename='imageedit_2_3225657187.png') }}" alt="Logo" width="30" height="30" class="d-inline-block align-text-top me-2">
-                    The Temple of Fine Arts Johor Bahru Attendance Tracker
+                    The Temple of Fine Arts Johor Bahru {# MODIFIED: Shortened brand text #}
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -100,37 +101,42 @@
                         {% if current_user.is_authenticated %}
                             <li class="nav-item">
                                 <a class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">Dashboard</a>
-                                <a class="nav-link {% if request.endpoint == 'main.school_timetable' %}active{% endif %}" href="{{ url_for('main.school_timetable') }}">School Timetable</a>
                             </li>
                             
                             {% if current_user.is_superuser or current_user.is_admin or current_user.is_staff %}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="adminMenuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {# MODIFIED: Added active class logic for Management dropdown #}
+                                <a class="nav-link dropdown-toggle {% if request.blueprint == 'admin' %}active{% endif %}" href="#" id="adminMenuDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Management
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="adminMenuDropdown">
                                     {% if current_user.is_superuser or current_user.is_admin %}
-                                     <li><a class="dropdown-item" href="{{ url_for('admin.admin_dashboard') }}">Admin Panel</a></li>
-                                     <li><a class="dropdown-item" href="{{ url_for('admin.list_all_users') }}">Manage Users</a></li>
+                                     <li><a class="dropdown-item {% if request.endpoint == 'admin.admin_dashboard' %}active{% endif %}" href="{{ url_for('admin.admin_dashboard') }}">Admin Panel</a></li>
+                                     <li><a class="dropdown-item {% if request.endpoint == 'admin.list_all_users' %}active{% endif %}" href="{{ url_for('admin.list_all_users') }}">Manage Users</a></li>
                                      <li><hr class="dropdown-divider"></li>
                                     {% endif %}
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.list_subjects') }}">Manage Subjects</a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.list_subject_classes') }}">Manage Classes</a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.list_teachers') }}">Manage Teachers</a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.list_students') }}">Manage Students</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.list_subjects' %}active{% endif %}" href="{{ url_for('admin.list_subjects') }}">Manage Subjects</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.list_subject_classes' %}active{% endif %}" href="{{ url_for('admin.list_subject_classes') }}">Manage Classes</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.list_teachers' %}active{% endif %}" href="{{ url_for('admin.list_teachers') }}">Manage Teachers</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.list_students' %}active{% endif %}" href="{{ url_for('admin.list_students') }}">Manage Students</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.list_holidays' %}active{% endif %}" href="{{ url_for('admin.list_holidays') }}">Manage Holidays</a></li>
                                      <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.list_holidays') }}">Manage Holidays</a></li>
-                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.import_students_csv') }}">Import Students</a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin.import_classes_csv') }}">Import Classes</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.import_students_csv' %}active{% endif %}" href="{{ url_for('admin.import_students_csv') }}">Import Students</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.import_classes_csv' %}active{% endif %}" href="{{ url_for('admin.import_classes_csv') }}">Import Classes</a></li>
                                      {% if current_user.is_superuser or current_user.is_admin %}
                                      <li><hr class="dropdown-divider"></li>
-                                     <li><a class="dropdown-item" href="{{ url_for('admin.backup_management') }}">Database Backups</a></li>
-                                     <li><a class="dropdown-item" href="{{ url_for('admin.view_system_logs') }}">View System Logs</a></li>
+                                     <li><a class="dropdown-item {% if request.endpoint == 'admin.backup_management' %}active{% endif %}" href="{{ url_for('admin.backup_management') }}">Database Backups</a></li>
+                                     <li><a class="dropdown-item {% if request.endpoint == 'admin.view_system_logs' %}active{% endif %}" href="{{ url_for('admin.view_system_logs') }}">View System Logs</a></li>
                                      {% endif %}
                                 </ul>
                             </li>
                             {% endif %}
+
+                            {# ADDED: School Timetable Link - after Dashboard and Management #}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.endpoint == 'main.school_timetable' %}active{% endif %}" href="{{ url_for('main.school_timetable') }}">School Timetable</a>
+                            </li>
+
                              {% if current_user.is_teacher %}
                                 <li class="nav-item">
                                     <a class="nav-link {% if request.endpoint.startswith('teacher.') %}active{% endif %}" href="{{ url_for('teacher.my_classes') }}">My Classes</a>
@@ -141,12 +147,12 @@
                     <ul class="navbar-nav ms-auto"> 
                         {% if current_user.is_authenticated %}
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="nav-link dropdown-toggle {% if request.endpoint == 'main.profile' %}active{% endif %}" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Logged in as: {{ current_user.username }} 
                                     <small class="text-white-50">({{ current_user.role.name.title() if current_user.role else 'N/A' }})</small>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">My Profile</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'main.profile' %}active{% endif %}" href="{{ url_for('main.profile') }}">My Profile</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
                                 </ul>
@@ -180,7 +186,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; {{ now().year }} The Temple of Fine Arts Johor Bahru Attendance Tracker. All rights reserved.</p>
+            <p>&copy; {{ now().year }} The Temple of Fine Arts Johor Bahru. All rights reserved.</p> {# MODIFIED: Footer text #}
         </div>
     </footer>
 

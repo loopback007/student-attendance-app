@@ -4,21 +4,20 @@ from flask_login import login_required, current_user
 from wtforms.validators import DataRequired, Length, EqualTo 
 from . import admin # Blueprint
 from app import db 
-from app.decorators import staff_required, admin_required # Ensure admin_required is imported
-# Models: Added ClassSchedule, Holiday. Removed AttendanceStatus.
+from app.decorators import staff_required, admin_required 
 from app.models import Subject, User, UserRole, Student, SubjectClass, Attendance, Holiday, ClassSchedule 
-# Forms: Added HolidayForm. SubjectClassForm now has a FieldList for schedules.
 from app.admin.forms import (
     SubjectForm, TeacherForm, StudentForm, SubjectClassForm, 
     EnrollmentForm, StudentCSVImportForm, ClassCSVImportForm,
     UserAdminForm, HolidayForm 
 )
-from datetime import date, datetime, time # Ensure time is imported for schedule processing
+from datetime import date, datetime, time 
 import pandas as pd 
 import io 
-from werkzeug.utils import secure_filename # For log download
+from werkzeug.utils import secure_filename 
 import os
 import shutil
+from sqlalchemy import text # <<< ADD THIS IMPORT
 
 # --- Backup Directory ---
 BACKUP_DIR_NAME = 'db_backups'
@@ -118,6 +117,7 @@ def delete_subject(subject_id):
     return redirect(url_for('admin.list_subjects'))
 
 # --- Teacher CRUD Routes ---
+# ... (Teacher routes remain the same) ...
 @admin.route('/teachers')
 @login_required
 @staff_required
@@ -129,7 +129,7 @@ def list_teachers():
 @login_required
 @staff_required
 def add_teacher():
-    form = TeacherForm()
+    form = TeacherForm() 
     if form.validate_on_submit():
         new_teacher_user = User(
             username=form.username.data, email=form.email.data,
@@ -193,6 +193,7 @@ def delete_teacher(user_id):
     return redirect(url_for('admin.list_teachers'))
 
 # --- Student CRUD Routes ---
+# ... (Student routes remain the same) ...
 @admin.route('/students')
 @login_required
 @staff_required
@@ -281,7 +282,8 @@ def list_subject_classes():
         db.joinedload(SubjectClass.subject_taught), 
         db.joinedload(SubjectClass.teacher_user)
     ).order_by(SubjectClass.name.asc()).all()
-    return render_template('admin/subject_classes.html', classes=classes, title="Manage Subject Classes")
+    # MODIFIED: Pass 'sa_text=text' to the template for sorting schedules
+    return render_template('admin/subject_classes.html', classes=classes, title="Manage Subject Classes", sa_text=text)
 
 @admin.route('/classes/add', methods=['GET', 'POST'])
 @login_required
@@ -393,7 +395,7 @@ def edit_subject_class(class_id):
         while len(form.schedules.entries) > 0:
             form.schedules.pop_entry()
         if subject_class.schedules:
-            for schedule in subject_class.schedules.order_by(ClassSchedule.day_of_week, ClassSchedule.start_time).all():
+            for schedule in subject_class.schedules.order_by(ClassSchedule.day_of_week, ClassSchedule.start_time).all(): # Simple sort for pre-population
                 form.schedules.append_entry({
                     'schedule_id': schedule.id,
                     'day_of_week': schedule.day_of_week,
@@ -427,6 +429,7 @@ def delete_subject_class(class_id):
     return redirect(url_for('admin.list_subject_classes'))
 
 # --- Enrollment Routes ---
+# ... (Enrollment routes remain the same) ...
 @admin.route('/classes/<int:class_id>/enrollments', methods=['GET', 'POST'])
 @login_required
 @staff_required
@@ -480,6 +483,7 @@ def unenroll_student(class_id, student_id):
     return redirect(url_for('admin.manage_enrollments', class_id=class_id))
 
 # --- CSV Import Routes ---
+# ... (CSV Import routes remain the same) ...
 @admin.route('/students/import', methods=['GET', 'POST'])
 @login_required
 @staff_required
@@ -622,6 +626,7 @@ def import_classes_csv():
     return render_template('admin/import_classes_csv.html', form=form, title="Import Subject Classes from CSV")
 
 # --- Backup Routes ---
+# ... (Backup routes remain the same) ...
 @admin.route('/backup', methods=['GET'])
 @login_required
 @admin_required 
@@ -677,6 +682,7 @@ def download_backup(filename):
         return redirect(url_for('admin.backup_management'))
 
 # --- User Management Routes (Admin Level) ---
+# ... (User management routes remain the same) ...
 @admin.route('/users')
 @login_required
 @admin_required 

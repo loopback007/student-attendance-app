@@ -1,39 +1,52 @@
 {% extends "base.html" %}
-{% from "_form_macros.html" import render_pagination with context %} {# Assuming pagination macro from your _form_macros.html #}
+{% from "_form_macros.html" import render_pagination with context %} {# Assuming pagination macro #}
 
 {% block title %}{{ title }} - Admin Panel{% endblock %}
 
 {% block head_extensions %}
+{{ super() }}
 <style>
     .actions-column .btn,
-    .actions-column form { /* Target forms for delete button styling */
-        margin-bottom: 0.3rem; /* Add a little space for wrapped buttons */
+    .actions-column form { 
+        margin-bottom: 0.3rem; 
         margin-right: 0.3rem;
     }
-    /* For larger screens, make buttons appear more inline */
-    @media (min-width: 992px) { /* Adjust this breakpoint as needed */
+    @media (min-width: 992px) { 
         .actions-column .btn,
         .actions-column form {
-            display: inline-block; /* Makes them flow inline */
+            display: inline-block; 
             margin-bottom: 0;
         }
-        .actions-column form:last-of-type .btn, /* Handle last button in a form if any */
-        .actions-column .btn:last-of-type { /* Handle last direct button */
+        .actions-column form:last-of-type .btn,
+        .actions-column .btn:last-of-type {
              margin-right: 0;
         }
     }
     .table th, .table td {
         vertical-align: middle; 
     }
-    .icon-text .fas, .icon-text .far, .icon-text .fab, .icon-text .bi { /* Added .bi for Bootstrap Icons */
+    .icon-text .fas, .icon-text .far, .icon-text .fab, .icon-text .bi { 
         margin-right: 0.3rem;
     }
     .schedule-col {
-        min-width: 180px; /* Give schedule column a bit more space */
+        min-width: 220px; 
+        font-size: 0.85em; 
+    }
+    .schedule-col ul {
+        padding-left: 0;
+        list-style-type: none;
+        margin-bottom: 0;
+    }
+    .schedule-col li {
+        margin-bottom: 0.25rem;
+        padding: 0.2rem 0.4rem;
+        background-color: #f8f9fa;
+        border-radius: .2rem;
+        border: 1px solid #eee;
     }
     .actions-column {
-        min-width: 290px; /* Ensure enough space for all action buttons */
-        text-align: center; /* Center buttons if they stack, or align them as preferred */
+        min-width: 290px; 
+        text-align: center; 
     }
 </style>
 {% endblock %}
@@ -43,10 +56,9 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">{{ title }}</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="{{ url_for('admin.add_subject_class') }}" class="btn btn-success icon-text"> {# Changed to btn-success for consistency #}
+            <a href="{{ url_for('admin.add_subject_class') }}" class="btn btn-success icon-text">
                 <i class="fas fa-plus"></i> Add New Class
             </a>
-            {# Assuming you want to keep the import classes link here from your uploaded version #}
             <a href="{{ url_for('admin.import_classes_csv') }}" class="btn btn-outline-secondary ms-2 icon-text">
                 <i class="fas fa-file-csv"></i> Import Classes
             </a>
@@ -55,7 +67,7 @@
 
     {# Flash messages are handled by base.html #}
 
-    {% if classes and (classes.items if classes.pages else classes) %} {# Handle both paginated and non-paginated 'classes' #}
+    {% if classes and (classes.items if classes.pages else classes) %}
     <div class="card shadow-sm">
         <div class="card-header">
             <h5 class="mb-0">All Subject Classes</h5>
@@ -69,7 +81,7 @@
                             <th>Class Name</th>
                             <th>Subject</th>
                             <th>Teacher</th>
-                            <th class="schedule-col">Schedule</th>
+                            <th class="schedule-col">Weekly Schedules</th>
                             <th>Academic Year</th>
                             <th>Start Date</th>
                             <th>End Date</th>
@@ -90,7 +102,21 @@
                                     <span class="text-muted fst-italic">Unassigned</span>
                                 {% endif %}
                             </td>
-                            <td class="schedule-col">{{ class_item.schedule_details if class_item.schedule_details else '--' }}</td>
+                            <td class="schedule-col">
+                                {% if class_item.schedules and class_item.schedules.count() > 0 %} {# Check if there are any schedules #}
+                                    <ul>
+                                    {# MODIFIED: Use sa_text instead of db.text #}
+                                    {% for schedule in class_item.schedules.order_by(sa_text('case day_of_week when "Monday" then 1 when "Tuesday" then 2 when "Wednesday" then 3 when "Thursday" then 4 when "Friday" then 5 when "Saturday" then 6 when "Sunday" then 7 else 8 end, start_time')) %}
+                                        <li>
+                                            {{ schedule.day_of_week }}: {{ schedule.start_time.strftime('%H:%M') }} - {{ schedule.end_time.strftime('%H:%M') }}
+                                            {% if schedule.location %}<small class="d-block text-muted">({{ schedule.location }})</small>{% endif %}
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <span class="text-muted fst-italic">-- No Schedules Defined --</span>
+                                {% endif %}
+                            </td>
                             <td>{{ class_item.academic_year if class_item.academic_year else '--' }}</td>
                             <td>{{ class_item.start_date.strftime('%d-%m-%Y') if class_item.start_date else '--' }}</td>
                             <td>{{ class_item.end_date.strftime('%d-%m-%Y') if class_item.end_date else '--' }}</td>
@@ -118,7 +144,7 @@
                                     </div>
                                     <div class="modal-body">
                                         <p>Are you sure you want to delete the class: <br><strong>{{ class_item.name }}</strong>?</p>
-                                        <p class="text-danger"><small>This action cannot be undone and might affect associated records (enrollments, attendance). Consider if this class should be marked inactive instead if applicable.</small></p>
+                                        <p class="text-danger"><small>This action cannot be undone and will also delete all associated weekly schedules. Student enrollments and attendance records will remain but may become orphaned if not handled separately.</small></p>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -151,11 +177,3 @@
     {% endif %}
 </div>
 {% endblock %}
-```
-
-**Key changes compared to a typical `subject_classes.html` you might have had:**
-* **Added "Monthly View" Button:**
-    ```html
-    <a href="{{ url_for('teacher.monthly_class_attendance_matrix', class_id=class_item.id) }}" class="btn btn-sm btn-outline-secondary icon-text" title="View Monthly Attendance">
-        <i class="fas fa-calendar-alt"></i> Monthly
-    </a>
